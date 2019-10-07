@@ -1,0 +1,74 @@
+/**
+ * 
+ */
+'use strict';
+
+var ChainReaderInterface = class {
+	constructor(module) {
+		this.module = module
+		this.global = module.global;
+	}
+	
+	// api
+	
+
+	// sync
+	getContract(address) {
+		var Contract = this.module.getContractClass();
+		
+		return Contract.getContract(address);
+	}
+	
+	// async
+	getCurrentBlockNumber(callback) {
+		var ethnode = this.module.getEthereumNodeObject();
+		
+		return ethnode.getHighestBlockNumber(callback);
+	}
+	
+	getLatestBlock(callback) {
+		var Block = this.module.getBlockClass();
+		
+		return Block.getLatestBlock(callback);
+	}
+	
+	getLatestTransactions(callback) {
+		var Block = this.module.getBlockClass();
+		
+		var promise = Block.getLatestBlock()
+		.then(function(res) {
+			var block = res;
+			
+			return block.getTransactions(callback);
+		});
+		
+		return promise;
+	}
+	
+	getContractName(address, callback) {
+		var Contract = this.module.getContractClass();
+		
+		return Contract.getContractName(address, callback);
+	}
+	
+	getContractVersion(address, callback) {
+		var Contract = this.module.getContractClass();
+		
+		return Contract.getContractVersion(address, callback);
+	}
+	
+}
+
+if ( typeof GlobalClass !== 'undefined' && GlobalClass )
+GlobalClass.registerModuleClass('ethchainreader', 'ChainReaderInterface', ChainReaderInterface);
+else if (typeof window !== 'undefined') {
+	let _GlobalClass = ( window && window.simplestore && window.simplestore.Global ? window.simplestore.Global : null);
+	
+	_GlobalClass.registerModuleClass('ethchainreader', 'ChainReaderInterface', ChainReaderInterface);
+}
+else if (typeof global !== 'undefined') {
+	// we are in node js
+	let _GlobalClass = ( global && global.simplestore && global.simplestore.Global ? global.simplestore.Global : null);
+	
+	_GlobalClass.registerModuleClass('ethchainreader', 'ChainReaderInterface', ChainReaderInterface);
+}

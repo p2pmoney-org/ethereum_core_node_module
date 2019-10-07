@@ -1,0 +1,1 @@
+default folder used by ethereum_core to store data saved in the local storage. application can use NodeClientStorageµ.setAppDir to change the default directory to one accessible (with correct permissions) elsewhere on the file system.
