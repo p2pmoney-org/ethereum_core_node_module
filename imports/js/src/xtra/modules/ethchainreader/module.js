@@ -138,20 +138,27 @@ var Module = class {
 	}*/
 	
 	getEthereumNodeAccess(session) {
-		if (session instanceof Session !== true)
+		var global = this.global;
+		
+		var SessionClass = (typeof Session !== 'undefined' ? Session : global.getModuleObject('common').Session);
+		if (session instanceof SessionClass !== true)
 			throw 'must pass a session object as first parameter!';
 		
-		var global = this.global;
+		var global = session.getGlobalObject();
 		
-		var ethnodemodule = global.getModuleObject('ethnode');
+		var ethereumnodeaccessmodule = global.getModuleObject('ethereum-node-access');
 		
-		return ethnodemodule.getEthereumNodeAccessInstance(session);
-		/*if (session)
-			return session.getEthereumNodeAccessInstance();*/
+		return ethereumnodeaccessmodule.getEthereumNodeAccessInstance(session);
 	}
 	
-	getChainReaderInterface() {
+	getChainReaderInterface(session) {
 		var global = this.global;
+		
+		var SessionClass = (typeof Session !== 'undefined' ? Session : global.getModuleObject('common').Session);
+		if (session instanceof SessionClass !== true)
+			throw 'must pass a session object as first parameter!';
+		
+		var global = session.getGlobalObject();
 		
 		var chainreaderinterface = null;
 
@@ -166,14 +173,20 @@ var Module = class {
 			chainreaderinterface = result[0];
 		}
 		else {
-			chainreaderinterface = new this.ChainReaderInterface(this);
+			chainreaderinterface = new this.ChainReaderInterface(session, this);
 		}
 		
 		return chainreaderinterface;
 	}
 	
-	getEthereumNodeObject() {
+	getEthereumNodeObject(session) {
 		var global = this.global;
+		
+		var SessionClass = (typeof Session !== 'undefined' ? Session : global.getModuleObject('common').Session);
+		if (session instanceof SessionClass !== true)
+			throw 'must pass a session object as first parameter!';
+		
+		var global = session.getGlobalObject();
 		
 		var ethereumnodeobject = null;
 
@@ -181,6 +194,7 @@ var Module = class {
 		var inputparams = [];
 		
 		inputparams.push(this);
+		inputparams.push(session);
 		
 		var ret = global.invokeHooks('getEthereumNodeObject_hook', result, inputparams);
 		
@@ -188,7 +202,7 @@ var Module = class {
 			ethereumnodeobject = result[0];
 		}
 		else {
-			ethereumnodeobject = new this.EthereumNode(this);
+			ethereumnodeobject = new this.EthereumNode(session, this);
 		}
 		
 		return ethereumnodeobject;

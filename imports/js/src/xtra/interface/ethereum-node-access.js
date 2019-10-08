@@ -12,7 +12,7 @@ var Module = class {
 		this.web3_version = "1.0.x";
 		//this.web3_version = "0.20.x";
 		
-		this.ethereum_node_access_instance = null;
+		//this.ethereum_node_access_instance = null;
 	}
 	
 	init() {
@@ -173,18 +173,23 @@ var Module = class {
 	
 	getEthereumJsClass(session) {
 		if ( typeof window !== 'undefined' && window ) {
+			if (typeof window.ethereumjs !== 'undefined')
 			return window.ethereumjs;
+			else if (typeof window.simplestore.ethereumjs !== 'undefined')
+				return window.simplestore.ethereumjs;
 		}
-		else {
-			throw 'nodejs not implemented';
+		else if (typeof global !== 'undefined') {
+			return global.simplestore.ethereumjs;
 			/*var ethereumjs;
 			
 			ethereumjs = require('ethereum.js');
 			ethereumjs.Util = require('ethereumjs-util');
 			ethereumjs.Wallet = require('ethereumjs-wallet');
-			ethereumjs.tx = require('ethereumjs-tx');
 
 			return ethereumjs;*/
+		}
+		else {
+			throw 'not implemented';
 		}
 	}
 
@@ -235,7 +240,77 @@ var Module = class {
 		return ethereumtransaction;
 	}
 	
+	readEthereumTransactionObject(session, txhash, callback) {
+		var self = this;
+		var EthereumNodeAcessInstance = this.getEthereumNodeAccessInstance(session);
+		
+		return EthereumNodeAcessInstance.web3_getTransaction(txhash, function(err, data) {
+			if (err) {
+				if (callback)
+					callback(err, null);
+			}
+			
+			return data;
+		})
+		.then(function(data) {
+			if (data) {
+				let fromaddress = data['from'];
+				let fromaccount = session.getAccountObject(fromaddress);
+				
+				let toaddress = data['to'];
+				let toaccount = (toaddress ? session.getAccountObject(toaddress) : null);
+				
+				let amount = data['value'];
+				
+				let gas = data['gas'];
+				let gasPrice = data['gasPrice'];
+				
+				let txdata = data['input'];
+				
+				let nonce = data['nonce'];
+				
+				var ethereumtransaction = self.getEthereumTransactionObject(session, fromaccount);
+			    
+				ethereumtransaction.setToAddress(toaddress);
+				ethereumtransaction.setValue(amount);
+				ethereumtransaction.setGas(gas);
+				ethereumtransaction.setGasPrice(gasPrice);
+				ethereumtransaction.setData(txdata);
+				ethereumtransaction.setNonce(nonce);
+				
+
+				if (callback)
+					callback(null, ethereumtransaction);
+				
+				return ethereumtransaction;
+			}
+		});
+	}
 	
+	// web3 utils
+	web3ToAscii(session, input) {
+		var web3 = this.getWeb3Instance(session);
+		
+		if (this.web3_version  == "1.0.x") {
+			return web3.utils.hexToAscii(input);
+		}
+		else {
+			return web3.toAscii(input);
+		}
+		
+	}
+
+	web3ToUTF8(session, input) {
+		var web3 = this.getWeb3Instance(session);
+		
+		if (this.web3_version  == "1.0.x") {
+			return web3.utils.hexToUtf8(input);
+		}
+		else {
+			throw 'not implemented';
+		}
+		
+	}
 
 }
 

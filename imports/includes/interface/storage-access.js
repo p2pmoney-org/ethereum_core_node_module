@@ -138,20 +138,20 @@ var Module = class {
 				jsonstring = localStorage.readClientSideJson(session, keystring, function(err, res) {
 					jsonstring = res;
 					
-					json = JSON.parse(jsonstring);
+					json = (jsonstring ? JSON.parse(jsonstring) : null);
 					
 					if (callback)
-						callback(null, json);
+						callback((json ? null : 'no result found'), json);
 				});
 			}
 			else {
 				// browser localstorage
 				jsonstring = localStorage.getItem(keystring);
 				
-				json = JSON.parse(jsonstring);
+				json = (jsonstring ? JSON.parse(jsonstring) : null);
 				
 				if (callback)
-					callback(null, json);
+					callback((json ? null : 'no result found'), json);
 			}
 		}
 		else {
