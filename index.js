@@ -4,7 +4,7 @@
 'use strict';
 
 
-console.log('ethereum_erc20 node module');
+console.log('ethereum_core node module');
 
 if ( typeof window !== 'undefined' && window ) {
 	// react-native
