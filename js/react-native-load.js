@@ -4,11 +4,12 @@ console.log('react-native-load.js');
 
 
 class ReactNativeLoad {
-	constructor() {
+	constructor(node_module) {
 		this.name = 'reactnativeload';
 		
 		var glob = global;
 		
+		this.node_module = node_module;
 		
 		console.log('ReactNativeLoad constructor');
 	}

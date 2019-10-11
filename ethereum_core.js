@@ -23,7 +23,7 @@ class Ethereum_core {
 			
 			var ReactNativeLoad = require( './js/react-native-load.js');
 
-			this.load = new ReactNativeLoad();
+			this.load = new ReactNativeLoad(this);
 		}
 		else if (typeof global !== 'undefined') {
 			console.log('loading for nodejs');
@@ -31,7 +31,7 @@ class Ethereum_core {
 			// we are in nodejs
 			var NodeLoad = require( './js/node-load.js');
 			
-			this.load = new NodeLoad();
+			this.load = new NodeLoad(this);
 		}
 		
 		var self = this;
@@ -75,6 +75,10 @@ class Ethereum_core {
 	
 	getArtifact(artifactname) {
 		return this.artifactmap[artifactname];
+	}
+	
+	getControllersObject() {
+		return require('./js/control/controllers.js').getObject();
 	}
 	
 

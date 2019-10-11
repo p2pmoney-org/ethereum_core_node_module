@@ -4,8 +4,10 @@ console.log('react-native-load.js');
 
 
 class NodeLoad {
-	constructor() {
+	constructor(node_module) {
 		this.name = 'nodeload';
+		
+		this.node_module = node_module;
 	}
 	
 	init(callback) {
