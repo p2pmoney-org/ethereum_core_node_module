@@ -87,7 +87,6 @@ var Transaction = class {
 		this.type =	(this.recipient ? "tx" : "create");
 		
 		this.input = this.data['input'];
-		this.input_decoded_ascii = ethereumnodeaccessmodule.web3ToUTF8(this.session, this.input);
 		
 		// additional members (needing transactionreceipt)
 		this.receiptdata = null; // we don't make the call now to avoid reading the receipts of all the transaction for a block

@@ -329,6 +329,21 @@ class Global {
 
 		if (!module.isReady)
 			throw 'module ' + module.name + ' needs to have a isReady function';
+		
+		if (this.modules[module.name]) {
+			console.log('WARNING: collision on module name ' + module.name + ', older module will no longer be accessible by its name!');
+			
+			// park previous module with trailing digit
+			var n = 1;
+			var newname = module.name + '-' + n;
+			
+			while (this.modules[newname]) {
+				n++;
+				newname = loadername + '-' + n;
+			}
+			
+			this.modules[newname] = this.modules[module.name];
+		}
 
 		this.modules[module.name] = module; // for direct access by name in getModuleObject
 		this.modules.push(module); //for iteration on the array
@@ -338,12 +353,16 @@ class Global {
 		
 		if ((this.allmodulesloadstarted) && (module.isloading === false)) {
 			console.log('WARNING: module ' + module.name + ' registered too late, will not be loaded by global object!');
-			console.log('WARNING: module ' + module.name + ' may need to implement a postRegisterModule method to do the load');
 		}
 		// global object set in the module
 		// call postRegisterModule if module has the function
-		if (module.postRegisterModule)
+		if (module.postRegisterModule) {
+			console.log('WARNING: module ' + module.name + ' has a postRegisterModule method, gives it opportunity to do the load if needed');
 			module.postRegisterModule();
+		}
+		else {
+			console.log('WARNING: module ' + module.name + ' may need to implement a postRegisterModule method to do the load');
+		}
 		
 	}
 	
