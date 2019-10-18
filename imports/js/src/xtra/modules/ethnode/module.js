@@ -12,7 +12,7 @@ var Module = class {
 		this.isloading = false;
 		
 		// web3
-		this.web3providerurl = null;
+		this.web3providerurl = null; // default provider url
 		//this.web3instance = null;
 		
 		// ethereum node access
@@ -22,7 +22,6 @@ var Module = class {
 		//this.web3instance = null;
 		
 		this.controllers = null;
-		
 		
 		this.transactionmap = Object.create(null); // use a simple object to implement the map
 
@@ -72,6 +71,7 @@ var Module = class {
 		modulescriptloader.push_script( moduleroot + '/model/contracts.js');
 		modulescriptloader.push_script( moduleroot + '/model/contractinstance.js');
 		modulescriptloader.push_script( moduleroot + '/model/transaction.js');
+		modulescriptloader.push_script( moduleroot + '/model/web3provider.js');
 		
 		modulescriptloader.load_scripts(function() { self.init(); if (callback) callback(null, self); });
 		
@@ -182,7 +182,7 @@ var Module = class {
 		return web3providerurl;
 	}
 	
-	setWeb3ProviderUrl(url, session) {
+	setWeb3ProviderUrl(url, session, callback) {
 		var global = this.global;
 
 		if (session) {
@@ -191,9 +191,37 @@ var Module = class {
 			var ethereumnodeaccessmodule = global.getModuleObject('ethereum-node-access');
 			
 			ethereumnodeaccessmodule.clearEthereumNodeAccessInstance(session);
+			
+			if (callback) {
+				// if callback provided, we make sure to initialize ethereumnodeaccessinstance
+				// with the new url to avoid concurrency problems
+				var ethereumnodeaccessinstance = this.getEthereumNodeAccessInstance(session);
+				
+				ethereumnodeaccessinstance.web3_setProviderUrl(url, (err, res) => {
+					var key = url.toLowerCase();
+					
+					if (!this.web3providermap[key]) {
+						// put instance in the map
+						var web3provider = new this.Web3Provider(session, web3providerurl, ethereumnodeaccessinstance);
+						
+						this.web3providermap[key] = web3provider;
+					}
+					
+					callback(null, url);
+				})
+				.catch(err => {
+					console.log('promise rejection in Module.setWeb3ProviderUrl: ' + err);
+					
+					if (callback)
+						callback(err, null);
+				});
+			}
 		}
 		else {
 			this.web3providerurl = url;
+			
+			if (callback)
+				callback(null, url);
 		}
 	}
 	
@@ -241,7 +269,7 @@ var Module = class {
 	}
 	
 	// instances of interfaces
-	getEthereumNodeAccessInstance(session) {
+	getEthereumNodeAccessInstance(session, web3providerurl) {
 		var global = this.global;
 		
 		var SessionClass = (typeof Session !== 'undefined' ? Session : global.getModuleObject('common').Session);
@@ -252,7 +280,30 @@ var Module = class {
 		
 		var ethereumnodeaccessmodule = global.getModuleObject('ethereum-node-access');
 		
-		return ethereumnodeaccessmodule.getEthereumNodeAccessInstance(session);
+		if (!web3providerurl)
+		return ethereumnodeaccessmodule.getEthereumNodeAccessInstance(session); // returns default
+		
+		// look in session map
+		if (!session.web3providermap)
+			session.web3providermap = Object.create(null); // create alternate providers map if do not exist
+		
+
+		var key = web3providerurl.toLowerCase();
+		
+		if (session.web3providermap[key])
+			return session.web3providermap[key].getEthereumNodeAccessInstance();
+		
+		// create a ethereum node access with the correct url
+		var ethereumnodeaccessinstance = ethereumnodeaccessmodule.createBlankEthereumNodeAccessInstance(session);
+		
+		ethereumnodeaccessinstance.web3_setProviderUrl(web3providerurl);
+		
+		// then create and store the provider
+		var web3provider = new this.Web3Provider(session, web3providerurl, ethereumnodeaccessinstance);
+		
+		session.web3providermap[key] = web3provider;
+		
+		return web3provider.getEthereumNodeAccessInstance();
 	}
 	
 	
@@ -373,7 +424,7 @@ var Module = class {
 		return EthereumNodeAccess.web3_getBalance(this.accountaddress);
 	}
 	
-	// chain async
+	// chain async (on default provider)
 	getChainAccountBalance(session, account, callback) {
 		var global = this.global;
 		
@@ -429,6 +480,27 @@ var Module = class {
 		
 		return EthereumNodeAccess.web3_sendTransaction(this, toaccount, amount, gas, gasPrice, txdata, nonce, callback);*/
 	}
+	
+	// chain async (on alternate provider)
+	getAltChainAccountBalance(session, account, web3providerurl, callback) {
+		var global = this.global;
+		
+		var SessionClass = (typeof Session !== 'undefined' ? Session : global.getModuleObject('common').Session);
+		if (session instanceof SessionClass !== true)
+			throw 'must pass a session object as first parameter!';
+		
+		var global = session.getGlobalObject();
+		
+		var ethnodemodule = global.getModuleObject('ethnode');
+
+		var EthereumNodeAccess = ethnodemodule.getEthereumNodeAccessInstance(session, web3providerurl);
+		
+		var accountaddress = account.getAddress();
+
+		return EthereumNodeAccess.web3_getBalance(accountaddress, callback);
+	}
+	
+
 	
 	// wallet
 	useWalletAccount() {
@@ -589,7 +661,7 @@ var Module = class {
 	}
 
 	// contract instance
-	getContractInstance(session, contractaddress, contractartifact) {
+	getContractInstance(session, contractaddress, contractartifact, web3providerurl) {
 		var global = this.global;
 		
 		var SessionClass = (typeof Session !== 'undefined' ? Session : global.getModuleObject('common').Session);
@@ -598,7 +670,7 @@ var Module = class {
 		
 		var global = session.getGlobalObject();
 		
-		var contractinstance = new this.ContractInstance(session, contractaddress, contractartifact);
+		var contractinstance = new this.ContractInstance(session, contractaddress, contractartifact, web3providerurl);
 		
 		return contractinstance;
 	}

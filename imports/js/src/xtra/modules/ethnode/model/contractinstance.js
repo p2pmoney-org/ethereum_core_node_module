@@ -155,10 +155,11 @@ var ContractTransaction = class {
 
 var ContractInstance = class {
 	
-	constructor(session, contractaddress, contractartifact) {
+	constructor(session, contractaddress, contractartifact, web3providerurl) {
 		
 		this.session = session;
 		this.address = contractaddress;
+		this.web3providerurl = web3providerurl;
 		
 		this.contractartifact = contractartifact;
 		
@@ -200,13 +201,29 @@ var ContractInstance = class {
 		this.address = address;
 	}
 	
+	getWeb3ProviderUrl() {
+		return this.web3providerurl;
+	}
+	
+	setWeb3ProviderUrl(url) {
+		this.web3providerurl = url;
+	}
+	
+	getEthereumNodeAccessInstance() {
+		var	session = this.session;
+		var ethnodemodule = this.ethnodemodule;
+		var web3providerurl = this.web3providerurl;
+		
+		return ethnodemodule.getEthereumNodeAccessInstance(session, web3providerurl);
+	}
+	
 	// initialization of truffle interface
 	_loadTruffleContract(callback) {
 		var session = this.session;
 		var self = this;
 		var ethnodemodule = this.ethnodemodule;
 		
-		var EthereumNodeAccess = ethnodemodule.getEthereumNodeAccessInstance(session);
+		var EthereumNodeAccess = this.getEthereumNodeAccessInstance();
 		var loadpromise = EthereumNodeAccess.truffle_loadArtifact(this.contractartifact, function(data) {
 			// Get the necessary contract artifact file and instantiate it with truffle-contract
 			var ContractInstanceArtifact = data;
@@ -255,7 +272,7 @@ var ContractInstance = class {
 		var session = this.session;
 		var ethnodemodule = this.ethnodemodule;
 		
-		var EthereumNodeAccess = ethnodemodule.getEthereumNodeAccessInstance(session);
+		var EthereumNodeAccess = this.getEthereumNodeAccessInstance();
 		
 		var handleaccept = function (instance) {
 			console.log('handleaccept: truffle contract instantiation done for ' + self.address);
@@ -344,7 +361,7 @@ var ContractInstance = class {
 		var ethnodemodule = this.ethnodemodule;
 		
 		
-		var EthereumNodeAccess = ethnodemodule.getEthereumNodeAccessInstance(session);
+		var EthereumNodeAccess = this.getEthereumNodeAccessInstance();
 		var loadpromise = EthereumNodeAccess.web3_loadArtifact(this.contractartifact, function(contract_artifact) {
 			return contract_artifact;
 		})
@@ -369,7 +386,7 @@ var ContractInstance = class {
 		var ethnodemodule = this.ethnodemodule;
 		
 		
-		var EthereumNodeAccess = ethnodemodule.getEthereumNodeAccessInstance(session);
+		var EthereumNodeAccess = this.getEthereumNodeAccessInstance();
 		
 		var abi = this.web3contract.getAbi();
 		var address = this.address;
@@ -450,7 +467,7 @@ var ContractInstance = class {
 		var session = this.session;
 		var ethnodemodule = this.ethnodemodule;
 		
-		var EthereumNodeAccess = ethnodemodule.getEthereumNodeAccessInstance(session);
+		var EthereumNodeAccess = this.getEthereumNodeAccessInstance();
 
 		var payingaccount = contracttransaction.getPayingAccount();
 		var gas = contracttransaction.getGas();
@@ -543,7 +560,7 @@ var ContractInstance = class {
 		var session = this.session;
 		var ethnodemodule = this.ethnodemodule;
 		
-		var EthereumNodeAccess = ethnodemodule.getEthereumNodeAccessInstance(session);
+		var EthereumNodeAccess = this.getEthereumNodeAccessInstance();
 
 		var fromaddress = payingaccount.getAddress();
 		
@@ -630,7 +647,7 @@ var ContractInstance = class {
 		var session = this.session;
 		var ethnodemodule = this.ethnodemodule;
 		
-		var EthereumNodeAccess = ethnodemodule.getEthereumNodeAccessInstance(session);
+		var EthereumNodeAccess = this.getEthereumNodeAccessInstance();
 		
 		var promise = this.activate(function (err, res) {
 			if ((!res) && (callback))
@@ -695,7 +712,7 @@ var ContractInstance = class {
 		var session = this.session;
 		var ethnodemodule = this.ethnodemodule;
 		
-		var EthereumNodeAccess = ethnodemodule.getEthereumNodeAccessInstance(session);
+		var EthereumNodeAccess = this.getEthereumNodeAccessInstance();
 		
 		var methodname = contracttransaction.getMethodName();
 		
@@ -786,7 +803,7 @@ var ContractInstance = class {
 		var session = this.session;
 		var ethnodemodule = this.ethnodemodule;
 		
-		var EthereumNodeAccess = ethnodemodule.getEthereumNodeAccessInstance(session);
+		var EthereumNodeAccess = this.getEthereumNodeAccessInstance();
 
 		var fromaddress = payingaccount.getAddress();
 		
@@ -872,7 +889,7 @@ var ContractInstance = class {
 		var session = this.session;
 		var ethnodemodule = this.ethnodemodule;
 		
-		var EthereumNodeAccess = ethnodemodule.getEthereumNodeAccessInstance(session);
+		var EthereumNodeAccess = this.getEthereumNodeAccessInstance();
 
 		var promise = EthereumNodeAccess.web3_findTransaction(transactionuuid)
 		.then(function(res) {

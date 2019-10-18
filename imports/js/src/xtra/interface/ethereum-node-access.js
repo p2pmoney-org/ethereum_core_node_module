@@ -72,11 +72,8 @@ var Module = class {
 	
 	
 	// objects
-	getEthereumNodeAccessInstance(session) {
-		if (session.ethereum_node_access_instance)
-			return session.ethereum_node_access_instance;
-		
-		console.log('instantiating EthereumNodeAccess');
+	createBlankEthereumNodeAccessInstance(session) {
+		console.log('instantiating a EthereumNodeAccess instance');
 		
 		var global = this.global;
 
@@ -89,15 +86,26 @@ var Module = class {
 		result[0]= new EthereumNodeAccess(session);
 		
 		// call hook to let modify or replace instance
+		var ethereum_node_access_instance;
+		
 		var ret = global.invokeHooks('getEthereumNodeAccessInstance_hook', result, inputparams);
 		
 		if (ret && result[0]) {
-			session.ethereum_node_access_instance = result[0];
+			ethereum_node_access_instance = result[0];
 		}
 		else {
-			session.ethereum_node_access_instance = new EthereumNodeAccess(session);
+			ethereum_node_access_instance = new EthereumNodeAccess(session);
 		}
 		
+		return ethereum_node_access_instance;
+		
+	}
+	
+	getEthereumNodeAccessInstance(session) {
+		if (session.ethereum_node_access_instance)
+			return session.ethereum_node_access_instance;
+		
+		session.ethereum_node_access_instance = this.createBlankEthereumNodeAccessInstance(session);
 		
 		return session.ethereum_node_access_instance;
 	}
@@ -140,6 +148,15 @@ var Module = class {
 		else {
 			throw 'not implemented';
 		}
+	}
+	
+	getWeb3ProviderUrl(session) {
+		var global = this.global;
+		var ethnodemodule = global.getModuleObject('ethnode');
+
+		var web3providerurl = ethnodemodule.getWeb3ProviderUrl(session);
+
+		return web3providerurl;
 	}
 	
 	getWeb3Provider(session) {
@@ -227,6 +244,8 @@ var Module = class {
 			
 			let nonce = (txjson.nonce ? txjson.nonce : null);
 			
+			let web3providerurl = this.web3_getProviderUrl();
+			
 			var ethereumtransaction = this.getEthereumTransactionObject(session, fromaccount);
 		    
 			ethereumtransaction.setToAddress(toaddress);
@@ -235,6 +254,7 @@ var Module = class {
 			ethereumtransaction.setGasPrice(gasPrice);
 			ethereumtransaction.setData(txdata);
 			ethereumtransaction.setNonce(nonce);
+			ethereumtransaction.setWeb3ProviderUrl(web3providerurl);
 		}
 		
 		return ethereumtransaction;
@@ -269,6 +289,8 @@ var Module = class {
 				
 				let nonce = data['nonce'];
 				
+				let web3providerurl = self.getWeb3ProviderUrl(session);
+
 				var ethereumtransaction = self.getEthereumTransactionObject(session, fromaccount);
 			    
 				ethereumtransaction.setToAddress(toaddress);
@@ -277,6 +299,7 @@ var Module = class {
 				ethereumtransaction.setGasPrice(gasPrice);
 				ethereumtransaction.setData(txdata);
 				ethereumtransaction.setNonce(nonce);
+				ethereumtransaction.setWeb3ProviderUrl(web3providerurl);
 				
 
 				if (callback)
@@ -534,6 +557,8 @@ class EthereumTransaction {
 		
 		this.status = null;
 		
+		this.web3providerurl = null;
+
 		var ethereumnodeaccessmodule = global.getModuleObject('ethereum-node-access');
 		
 		this.ethereumnodeaccessmodule = ethereumnodeaccessmodule;
@@ -639,6 +664,21 @@ class EthereumTransaction {
 		this.status = status;
 	}
 	
+	getWeb3ProviderUrl() {
+		if (this.web3providerurl)
+		return this.web3providerurl;
+		
+		// return default
+		var global = this.session.getGlobalObject();
+		var ethnodemodule = global.getModuleObject('ethnode');
+		
+		return ethnodemodule.getWeb3ProviderUrl();
+	}
+	
+	setWeb3ProviderUrl(url) {
+		this.web3providerurl = url;
+	}
+	
 	getTxJson() {
 		var web3 = this.web3;
 		
@@ -690,6 +730,7 @@ class EthereumTransaction {
 		var ethnodemodule = global.getModuleObject('ethnode');
 		
 		var web3 = this.web3;
+		var web3providerurl = this.getWeb3ProviderUrl();
 		var fromaccount = this.sendingaccount;
 		var toaccount = this.recipientaccount;
 		
@@ -706,7 +747,7 @@ class EthereumTransaction {
 		var txjson = this.getTxJson();
 		
 		var ethereumnodeaccessmodule = this.ethereumnodeaccessmodule;
-		var EthereumNodeAccess = ethnodemodule.getEthereumNodeAccessInstance(session);
+		var EthereumNodeAccess = ethnodemodule.getEthereumNodeAccessInstance(session, web3providerurl);
 
 		
 		if (fromaccount.canSignTransactions()) {
@@ -792,6 +833,8 @@ class EthereumNodeAccess {
 		
 		this.ethereumnodeaccessmodule = ethereumnodeaccessmodule;
 		this.web3_version = ethereumnodeaccessmodule.web3_version;
+		
+		this.web3providerurl = null;
 	}
 	
 	isReady(callback) {
@@ -831,6 +874,15 @@ class EthereumNodeAccess {
 	
 	
 	// node
+	web3_getProviderUrl() {
+		if (this.web3providerurl)
+			return this.web3providerurl;
+		
+		this.web3providerurl = this.ethereumnodeaccessmodule.getWeb3ProviderUrl(this.session);
+		
+		return this.web3providerurl;
+	}
+	
 	web3_setProviderUrl(url, callback) {
 		this.web3instance = null;
 		
@@ -839,8 +891,12 @@ class EthereumNodeAccess {
 		
 		this.web3instance = new Web3(web3Provider);
 		
+		this.web3providerurl = url;
+		
 		if (callback)
 			callback(null, this.web3instance);
+		
+		return Promise.resolve(this.web3instance);
 	}
 	
 	web3_isSyncing(callback) {
@@ -1420,7 +1476,9 @@ class EthereumNodeAccess {
 		
 		var status = ethtransaction.getStatus();
 		
-		var json = {transactionuuid: transactionuuid, transactionHash: transactionHash, from: from, to: to, value: value, creationdate: creationdate, status: status};
+		var web3providerurl = ethtransaction.getWeb3ProviderUrl()
+		
+		var json = {transactionuuid: transactionuuid, transactionHash: transactionHash, from: from, to: to, value: value, creationdate: creationdate, status: status, web3providerurl: web3providerurl};
 		
 		// add to transaction list (on the client/browser side)
 		var storageaccess = session.getStorageAccessInstance();
@@ -1474,6 +1532,7 @@ class EthereumNodeAccess {
 						transaction.setValue(tx['value']);
 						transaction.setCreationDate(tx['creationdate']);
 						transaction.setStatus(tx['status']);
+						transaction.setWeb3ProviderUrl(tx['web3providerurl']);
 					
 						transactionarray.push(transaction);
 					}
@@ -1619,6 +1678,12 @@ class EthereumNodeAccess {
 		if (ethtransaction.getTransactionUUID() === null)
 			ethtransaction.setTransactionUUID(session.guid());
 		
+		if (ethtransaction.web3providerurl === null) {
+			// fill provider url if caller didn't
+			let web3providerurl = this.web3_getProviderUrl();
+			ethtransaction.setWeb3ProviderUrl(web3providerurl);
+		}
+		
 		var transactionuuid = ethtransaction.getTransactionUUID();
 		
 		console.log('EthereumNodeAccess.web3_sendEthTransaction txjson is ' + JSON.stringify(ethtransaction.getTxJson()));
@@ -1718,7 +1783,9 @@ class EthereumNodeAccess {
 
 		console.log('EthereumNodeAccess.web3_sendTransaction called from ' + fromaddress + ' to ' + toaddress + ' amount ' + amount);
 
-	    var ethtransaction = self.ethereumnodeaccessmodule.getEthereumTransactionObject(session, fromaccount);
+		let web3providerurl = this.web3_getProviderUrl();
+
+		var ethtransaction = self.ethereumnodeaccessmodule.getEthereumTransactionObject(session, fromaccount);
 	    
 	    ethtransaction.setToAddress(toaddress);
 	    ethtransaction.setValue(amount);
@@ -1726,6 +1793,7 @@ class EthereumNodeAccess {
 	    ethtransaction.setGasPrice(gasPrice);
 	    ethtransaction.setData(txdata);
 	    ethtransaction.setNonce(nonce);
+		ethereumtransaction.setWeb3ProviderUrl(web3providerurl);
 	    
 		var transactionuuid = session.guid(); // maybe we could read it from txdata
 		

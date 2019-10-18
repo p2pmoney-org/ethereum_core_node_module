@@ -228,6 +228,7 @@ var Contracts = class {
 
 		for(var i = 0; i < jsonarray.length; i++) {
 			var address = (jsonarray[i]['address'] ? jsonarray[i]['address'] : null);
+			var web3providerurl = (jsonarray[i]['web3providerurl'] ? jsonarray[i]['web3providerurl'] : null);
 			var contracttype = (jsonarray[i]['contracttype'] ? jsonarray[i]['contracttype'] : null);
 			
 			var contract;
@@ -235,9 +236,14 @@ var Contracts = class {
 			if (address)
 				contract = this.getContractObject(address, contracttype);
 			else
-				contract = this.createBlankContractObject(contracttype)
+				contract = this.createBlankContractObject(contracttype);
 			
 			if (contract) {
+				// adding web3providerurl (if it has been saved, was not in older versions)
+				if (web3providerurl && contract.setWeb3ProviderUrl) {
+					contract.setWeb3ProviderUrl(web3providerurl);
+				}
+				
 				contract.initContract(jsonarray[i]);
 				this.addContractObject(contract);
 			}
@@ -441,6 +447,15 @@ var Contracts = class {
 			
 			if (!contract.getAddress)
 				throw 'contract class for type ' + contracttype + ' must implement getAddress method';
+			
+			if (!contract.getWeb3ProviderUrl) {
+				console.log( 'WARNING: contract class for type ' + contracttype + ' will have to implement getWeb3ProviderUrl method');
+				var session = this.session;
+				var global = session.getGlobalObject();
+				var ethnodemodule = global.getModuleObject('ethnode');
+				var web3providerurl = ethnodemodule.getWeb3ProviderUrl(session);
+				contract.getWeb3ProviderUrl = function() { return web3providerurl;};
+			}
 			
 			if (!contract.getUUID)
 				throw 'contract class for type ' + contracttype + ' must implement getUUID method';

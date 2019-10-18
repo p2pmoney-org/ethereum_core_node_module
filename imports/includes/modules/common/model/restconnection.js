@@ -9,6 +9,21 @@ var RestConnection = class {
 		
 		this.rest_server_url = rest_server_url;
 		this.rest_server_api_path = rest_server_api_path;
+		
+		this.header = Object.create(null);
+	}
+	
+	addToHeader(keyvalue) {
+		this.header[keyvalue.key] = keyvalue.value;
+	}
+	
+	setRequestHeader(xhttp) {
+	    xhttp.setRequestHeader("Content-type", "application/json");
+	    xhttp.setRequestHeader("sessiontoken", this.session.getSessionUUID());
+		
+	    for (var key in this.header) {
+		    xhttp.setRequestHeader(key, this.header[key]);
+	    }
 	}
 	
 	rest_get(resource, callback) {
@@ -24,8 +39,9 @@ var RestConnection = class {
 	    
 	    xhttp.open("GET", resource_url, true);
 	    
-	    xhttp.setRequestHeader("Content-type", "application/json");
-	    xhttp.setRequestHeader("sessiontoken", session.getSessionUUID());
+	    /*xhttp.setRequestHeader("Content-type", "application/json");
+	    xhttp.setRequestHeader("sessiontoken", session.getSessionUUID());*/
+	    this.setRequestHeader(xhttp);
 	    
 	    xhttp.send();
 	    
@@ -74,8 +90,9 @@ var RestConnection = class {
 	    
 	    xhttp.open("POST", resource_url, true);
 	    
-	    xhttp.setRequestHeader("Content-type", "application/json");
-	    xhttp.setRequestHeader("sessiontoken", session.getSessionUUID());
+	    /*xhttp.setRequestHeader("Content-type", "application/json");
+	    xhttp.setRequestHeader("sessiontoken", session.getSessionUUID());*/
+	    this.setRequestHeader(xhttp);
 	    
 	    xhttp.send(JSON.stringify(postdata));
 	    
@@ -124,8 +141,9 @@ var RestConnection = class {
 	    
 	    xhttp.open("PUT", resource_url, true);
 	    
-	    xhttp.setRequestHeader("Content-type", "application/json");
-	    xhttp.setRequestHeader("sessiontoken", session.getSessionUUID());
+	    /*xhttp.setRequestHeader("Content-type", "application/json");
+	    xhttp.setRequestHeader("sessiontoken", session.getSessionUUID());*/
+	    this.setRequestHeader(xhttp);
 	    
 	    xhttp.send(JSON.stringify(postdata));
 	    
@@ -173,8 +191,9 @@ var RestConnection = class {
 	    
 	    xhttp.open("DELETE", resource_url, true);
 	    
-	    xhttp.setRequestHeader("Content-type", "application/json");
-	    xhttp.setRequestHeader("sessiontoken", session.getSessionUUID());
+	    /*xhttp.setRequestHeader("Content-type", "application/json");
+	    xhttp.setRequestHeader("sessiontoken", session.getSessionUUID());*/
+	    this.setRequestHeader(xhttp);
 	    
 	    xhttp.send();
 	    

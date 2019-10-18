@@ -565,6 +565,9 @@ class Global {
 				console.log('registering hook '+ hookentry + ' for ' + modulename);
 				
 				hookarray.push(entry);
+				
+				// sort array
+				this._sortHookEntryArray(hookentry)
 			}
 			
 		}

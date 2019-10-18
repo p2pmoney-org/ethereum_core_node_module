@@ -256,12 +256,27 @@ class StorageAccess {
 
 		var promise = new Promise(function (resolve, reject) {
 			// client side storage only for dapp
-			var json = self.readClientSideJson(keys, callback);
+			var json = self.readClientSideJson(keys, function(err, res) {
+				if (err) {
+					console.log('error reading client side json: ' + err);
+					
+					json = null;
+					
+					if (callback)
+						callback(err, null);
+				}
+				else {
+					json = res;
+					
+					if (callback)
+						callback(null, json);
+				}
+				
+				resolve(json);
+			});
 			
-			if (callback)
-				callback(null, json);
 			
-			return resolve(json);
+			return json;
 		});
 		
 		return promise;
@@ -273,7 +288,11 @@ class StorageAccess {
 
 		var promise = new Promise(function (resolve, reject) {
 			// client side storage only for dapp
-			self.saveClientSideJson(keys, json, callback);
+			self.saveClientSideJson(keys, json, function(err, res) {
+				if (err) {
+					console.log('error saving client side json: ' + err);
+				}
+			});
 			
 			if (callback)
 				callback(null, json);

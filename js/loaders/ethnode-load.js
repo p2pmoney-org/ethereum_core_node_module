@@ -24,6 +24,8 @@ rootscriptloader.push_import(ethnodemodulescriptloader,'../../imports/js/src/xtr
 import  '../../imports/js/src/xtra/modules/ethnode/model/contractinstance.js';
 rootscriptloader.push_import(ethnodemodulescriptloader,'../../imports/js/src/xtra/modules/ethnode/model/transaction.js');
 import  '../../imports/js/src/xtra/modules/ethnode/model/transaction.js';
+rootscriptloader.push_import(ethnodemodulescriptloader,'../../imports/js/src/xtra/modules/ethnode/model/web3provider.js');
+import  '../../imports/js/src/xtra/modules/ethnode/model/web3provider.js';
 
 
 ethnodemodulescriptloader.load_scripts();
