@@ -38,6 +38,7 @@ var ContractTransaction = class {
 	
 	getEthereumTransactionObject() {
 		if (!this.ethereumtransaction) {
+			// instantiate an ethereumtransaction object, if not already done
 			var contractinstance = this.contractinstance;
 			var session = contractinstance.session;
 			var global = session.getGlobalObject();
@@ -46,6 +47,9 @@ var ContractTransaction = class {
 			var fromaccount = this.getFromAccount();
 			
 			this.ethereumtransaction = ethereumnodeaccessmodule.getEthereumTransactionObject(session, fromaccount);
+			
+			var web3providerurl = contractinstance.getWeb3ProviderUrl();
+			this.ethereumtransaction.setWeb3ProviderUrl(web3providerurl);
 		}
 		
 		var txuuid = this.getContractTransactionUUID();
@@ -68,6 +72,7 @@ var ContractTransaction = class {
 		this.ethereumtransaction.setData(data);
 		this.ethereumtransaction.setNonce(nonce);
 		
+
 		return this.ethereumtransaction ;
 	}
 	

@@ -200,11 +200,11 @@ var Module = class {
 				ethereumnodeaccessinstance.web3_setProviderUrl(url, (err, res) => {
 					var key = url.toLowerCase();
 					
-					if (!this.web3providermap[key]) {
+					if (!session.web3providermap[key]) {
 						// put instance in the map
 						var web3provider = new this.Web3Provider(session, web3providerurl, ethereumnodeaccessinstance);
 						
-						this.web3providermap[key] = web3provider;
+						session.web3providermap[key] = web3provider;
 					}
 					
 					callback(null, url);
@@ -469,8 +469,11 @@ var Module = class {
 		
 		ethereumtransaction.setTransactionUUID(transactionuuid);
 
+		var EthereumNodeAccess = ethnodemodule.getEthereumNodeAccessInstance(session); // default
 		
-		var EthereumNodeAccess = ethnodemodule.getEthereumNodeAccessInstance(session);
+		// set provider url in transaction (to avoid warning in logs)
+		var web3providerurl = EthereumNodeAccess.web3_getProviderUrl();
+		ethereumtransaction.setWeb3ProviderUrl(web3providerurl);
 		
 		
 		return EthereumNodeAccess.web3_sendEthTransaction(ethereumtransaction, callback);

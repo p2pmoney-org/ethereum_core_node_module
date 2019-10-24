@@ -1679,7 +1679,8 @@ class EthereumNodeAccess {
 			ethtransaction.setTransactionUUID(session.guid());
 		
 		if (ethtransaction.web3providerurl === null) {
-			// fill provider url if caller didn't
+			// fill with default provider url if caller didn't
+			console.log('WARNING: EthereumNodeAccess.web3_sendEthTransaction caller did not set provider url for transaction ' + ethtransaction.getTransactionUUID());
 			let web3providerurl = this.web3_getProviderUrl();
 			ethtransaction.setWeb3ProviderUrl(web3providerurl);
 		}
