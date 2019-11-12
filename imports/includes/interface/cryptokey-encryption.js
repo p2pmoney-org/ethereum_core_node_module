@@ -326,6 +326,84 @@ class CryptoKeyEncryption {
 		}
 	}
 	
+	getPrivateKeyStoreFileName() {
+		var ethereumjs = this.getEthereumJsClass();
+		
+		var cryptokey = this.cryptokey;
+		var _privatekey = cryptokey.private_key;
+
+		const wallet = ethereumjs.Wallet.fromPrivateKey(ethereumjs.Util.toBuffer(_privatekey));
+		
+		return wallet.getV3Filename();
+	}
+	
+	getPrivateKeyStoreString(passphrase) {
+		var keythereum = this.getKeythereumClass();
+		var ethereumjs = this.getEthereumJsClass();
+
+		var cryptokey = this.cryptokey;
+		var _privatekey = cryptokey.private_key;
+		
+		/*
+		
+		 const wallet = ethereumjs.Wallet.fromPrivateKey(ethereumjs.Util.toBuffer(_privatekey));
+		
+		const address = wallet.getAddressString();
+		const keystoreFilename = wallet.getV3Filename();
+		const keystore = wallet.toV3(passphrase);
+		const keystorestring = wallet.toV3String(passphrase);*/
+		
+		// store key creation
+		
+		// optional private key and initialization vector sizes in bytes
+		// (if params is not passed to create, keythereum.constants is used by default)
+		var params = { keyBytes: 32, ivBytes: 16 };
+
+		// synchronous
+		var dk = keythereum.create(params);
+		
+		dk.privateKey = ethereumjs.Util.toBuffer(_privatekey);
+		
+		// key export
+		var kdf = "pbkdf2"; // or "scrypt" to use the scrypt kdf
+		
+		// Note: if options is unspecified, the values in keythereum.constants are used.
+		var options = {
+		  kdf: "pbkdf2",
+		  cipher: "aes-128-ctr",
+		  kdfparams: {
+		    c: 262144,
+		    dklen: 32,
+		    prf: "hmac-sha256"
+		  }
+		};
+		
+		var keyObject = keythereum.dump(passphrase, dk.privateKey, dk.salt, dk.iv, options);
+		
+		var keystorestring = JSON.stringify(keyObject);
+		
+		return keystorestring;		
+	}
+	
+	readPrivateKeyFromStoreString(keystorestring, passphrase) {
+		var _privatekey;
+		
+		var keythereum = this.getKeythereumClass();
+
+		var keyObject = JSON.parse(keystorestring);
+		var key = keythereum.recover(passphrase, keyObject);
+		
+		_privatekey = '0x' + key.toString('hex');
+		
+		// fill cryptokey
+		var cryptokey = this.cryptokey;
+		cryptokey.setPrivateKey(_privatekey);
+		
+		return cryptokey.getPrivateKey();
+	}
+	
+
+	
 	setPublicKey(pubkey) {
 		var cryptokey = this.cryptokey;
 
@@ -728,6 +806,24 @@ class CryptoKeyEncryption {
 		var cryptokeyPassword="123456";
 		var key = ethereumjs.Wallet.generate(cryptokeyPassword);
 		return '0x' + key._privKey.toString('hex');		
+	}
+	
+	hash_hmac(hashforce, datastring, keystring) {
+		var keythereum = this.getKeythereumClass();
+		var ethereumjs = this.getEthereumJsClass();
+	    var bitcore = this.getBitcoreClass();
+	    var ECIES = this.getBitcoreEcies();
+
+	    
+	    var Hash = bitcore.crypto.Hash;
+		
+		var hashf = (hashforce == 'sha512' ? Hash.sha512 : Hash.sha256);
+		var data = Buffer.from(datastring);
+		var key = Buffer.from(keystring);
+		
+		var hashbuff = Hash.hmac(hashf, data, key);
+		
+		return hashbuff;
 	}
 
 	

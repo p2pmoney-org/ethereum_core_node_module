@@ -57,6 +57,7 @@ var Module = class {
 		modulescriptloader.push_script( moduleroot + '/control/controllers.js');
 
 		modulescriptloader.push_script( moduleroot + '/model/localstorage.js');
+		modulescriptloader.push_script( moduleroot + '/model/localvault.js');
 		modulescriptloader.push_script( moduleroot + '/model/restconnection.js');
 		modulescriptloader.push_script( moduleroot + '/model/cryptokey.js');
 		modulescriptloader.push_script( moduleroot + '/model/account.js');
@@ -315,6 +316,43 @@ var Module = class {
 		var global = session.getGlobalObject();
 		
 		return session.createBlankAccountObject();
+	}
+	
+	// vaults
+	openVault(session, vaultname, passphrase, callback) {
+		var LocalVault = this.LocalVault;
+		
+		LocalVault.openVault(session, vaultname, passphrase, callback);
+	}
+	
+	createVault(session, vaultname, passphrase, callback) {
+		var LocalVault = this.LocalVault;
+		
+		LocalVault.createVault(session, vaultname, passphrase, callback);
+	}
+	
+	getFromVault(session, vaultname, key) {
+		var LocalVault = this.LocalVault;
+		
+		var vault = LocalVault.getVault(session, vaultname);
+		
+		if (vault) {
+			return vault.getValue(key);
+		}
+	}
+
+	putInVault(session, vaultname, key, value, callback) {
+		var LocalVault = this.LocalVault;
+		
+		var vault = LocalVault.getVault(session, vaultname);
+		
+		if (vault) {
+			vault.putValue(key, value, callback);
+		}
+		else {
+			if (callback)
+				callback('no vault with this name: ' + vaultname, null);
+		}
 	}
 	
 }

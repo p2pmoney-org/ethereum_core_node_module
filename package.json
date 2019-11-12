@@ -1,6 +1,6 @@
 {
   "name": "@p2pmoney-org/ethereum_core",
-  "version": "0.12.2",
+  "version": "0.12.3",
   "author": "P2PMoney.org",
   "homepage": "http://www.p2pmoney.org/",
   "license": "MIT",
@@ -9,7 +9,8 @@
     "url": "https://github.com/p2pmoney-org/ethereum_core_node_module"
   },
   "scripts": {
-    "test:node": "mocha ./tests/tests.js"
+    "test:node": "mocha ./tests/tests.js",
+    "test:node-debug": "mocha --inspect-brk ./tests/tests.js"
   },
   "dependencies": {
     "bitcore": "^0.11.7",
@@ -23,6 +24,8 @@
     "web3": "1.0.0-beta.34"
   },
   "devDependencies": {
+    "typedarray-to-buffer": "^3.1.2",
+    "yaeti": "^0.0.6",
     "chai": "^4.2.0",
     "mocha": "^6.2.1"
   }

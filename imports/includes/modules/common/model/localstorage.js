@@ -47,7 +47,10 @@ var LocalStorage = class {
 		var key = '';
 		
 		for (var i =0; i < keys.length; i++) {
-			key += (i > 0 ? '-' : '') + keys[i]
+			if (!keys[i].match("^[A-Za-z0-9]+$"))
+				throw 'keys can only contain alphanumeric values: ' + keys[i];
+
+			key += (i > 0 ? '-' : '') + keys[i].toLowerCase();
 		}
 		
 		return key;

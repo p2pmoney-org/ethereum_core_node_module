@@ -106,8 +106,6 @@ var NodeClientStorage = class {
 		var jsonPath;
 		var jsonFile;
 		
-		var finished = false;
-		
 		try {
 			jsonPath = path.join(storagedir, jsonFileName);
 		
@@ -118,14 +116,16 @@ var NodeClientStorage = class {
 			    if (err) {
 			    	error = err;
 			    	
-			    	finished = true;
+					if (callback)
+						callback(error, false);
 			    }
 			    else {
 					// then write file
 			    	fs.writeFile(jsonPath, jsonstring, 'utf8', function() {
 						bSuccess = true;
 					
-						finished = true;
+						if (callback)
+							callback(null, bSuccess);
 					});
 			    }
 
@@ -137,15 +137,10 @@ var NodeClientStorage = class {
 			error = 'exception in NodeClientStorage.saveClientSideJson: ' + e.message;
 			console.log(error);
 			
-			finished = true;
+			if (callback)
+				callback(error, false);
 		}
 		
-		// wait to turn into synchronous call
-		while(!finished)
-		{_noderequire('deasync').runLoopOnce();}
-		
-		if (callback)
-			callback(error, bSuccess);
 	}
 }
 

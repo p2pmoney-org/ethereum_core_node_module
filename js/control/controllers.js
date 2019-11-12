@@ -14,6 +14,10 @@ var ModuleControllers = class {
 		this.session = null;
 	}
 	
+	getGlobalObject() {
+		return this.global;
+	}
+	
 	getCurrentSessionObject() {
 		if (this.session)
 			return this.session;
@@ -266,6 +270,23 @@ var ModuleControllers = class {
 		
 	}
 	
+	getPrivateKeyStoreString(session, privkey, passphrase) {
+		var cryptokey = session.createBlankCryptoKeyObject();
+		cryptokey.setPrivateKey(privkey);
+		
+		var cryptokeyencryptioninstance = session.getCryptoKeyEncryptionInstance(cryptokey);
+		
+		return cryptokeyencryptioninstance.getPrivateKeyStoreString(passphrase);
+	}
+	
+	readPrivateKeyFromStoreString(session, keystorestring, passphrase) {
+		var cryptokey = session.createBlankCryptoKeyObject();
+		var cryptokeyencryptioninstance = session.getCryptoKeyEncryptionInstance(cryptokey);
+		
+		return cryptokeyencryptioninstance.readPrivateKeyFromStoreString(keystorestring, passphrase);
+	}
+
+	
 	getPublicKeys(session, privatekey) {
 		var account = this._createAccount(session, null, privatekey);
 		
@@ -294,14 +315,63 @@ var ModuleControllers = class {
 		return cryptokey.aesDecryptString(cyphertext);
 	}
 	
-	rsaEncryptString(senderaccount, recipientaccount, plaintext) {
+	rsaEncryptString(session, senderaccount, recipientaccount, plaintext) {
 		return senderaccount.rsaEncryptString(plaintext, recipientaccount)
 	}
 	
-	rsaDecryptString(recipientaccount, senderaccount, cyphertext) {
+	rsaDecryptString(session, recipientaccount, senderaccount, cyphertext) {
 		return recipientaccount.rsaDecryptString(cyphertext, senderaccount)
 	}
 	
+	generatePrivateKeyFromPassphrase(session, passphrase) {
+		var cryptokey = session.createBlankCryptoKeyObject();
+		var cryptokeyencryptioninstance = session.getCryptoKeyEncryptionInstance(cryptokey);
+		
+		return cryptokeyencryptioninstance.generatePrivateKeyFromPassphrase(passphrase);
+	}
+	
+	hash_hmac(session, hashforce, datastring, keystring) {
+		var cryptokey = session.createBlankCryptoKeyObject();
+		var cryptokeyencryptioninstance = session.getCryptoKeyEncryptionInstance(cryptokey);
+	
+		return cryptokeyencryptioninstance.hash_hmac(hashforce, datastring, keystring);
+	}
+	
+	//
+	// vault
+	//
+	openVault(session, vaultname, passphrase, callback) {
+		var global = this.global;
+		
+		var commonmodule = global.getModuleObject('common');
+		
+		commonmodule.openVault(session, vaultname, passphrase, callback);
+	}
+
+	createVault(session, vaultname, passphrase, callback) {
+		var global = this.global;
+		
+		var commonmodule = global.getModuleObject('common');
+		
+		commonmodule.createVault(session, vaultname, passphrase, callback);
+	}
+	
+	getFromVault(session, vaultname, key) {
+		var global = this.global;
+		
+		var commonmodule = global.getModuleObject('common');
+		
+		return commonmodule.getFromVault(session, vaultname, key);
+	}
+
+	putInVault(session, vaultname, key, value, callback) {
+		var global = this.global;
+		
+		var commonmodule = global.getModuleObject('common');
+		
+		commonmodule.putInVault(session, vaultname, key, value, callback);
+	}
+
 	
 	// static
 	static getObject() {

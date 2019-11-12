@@ -78,9 +78,7 @@ var Account = class {
 		this.accountuuid = null;
 		
 		// encryption
-		this.private_key = null;
-		this.public_key = null; // ECE public key
-		this.rsa_public_key = null; // asymmetric
+		this.cryptokey = null;
 		
 		this.accountencryption = this.session.getAccountEncryptionInstance(this);
 	}
@@ -109,9 +107,9 @@ var Account = class {
 	setAddress(address) {
 		this.address = address;
 		
-		this.private_key = null;
-		this.public_key = null; // ECE public key
-		this.rsa_public_key = null; // asymmetric
+		var cryptokey = this.getCryptoKey();
+		
+		cryptokey.setAddress(address);
 	}
 	
 	getOwner() {
@@ -123,8 +121,10 @@ var Account = class {
 	}
 	
 	isValid() {
-		if (this.address != null) {
-			if (this.session.isValidAddress(this.address)) {
+		var address = this.getAddress();
+		
+		if (address != null) {
+			if (this.session.isValidAddress(address)) {
 				return true;
 			}
 			else {
@@ -144,37 +144,63 @@ var Account = class {
 		this.description = description;
 	}
 	
+	getCryptoKey() {
+		if (this.cryptokey)
+			return this.cryptokey;
+		
+		var session = this.session;
+		
+		this.cryptokey = session.createBlankCryptoKeyObject();
+		
+		if (this.private_key)
+			this.cryptokey.setPrivateKey(this.private_key);
+		else
+			this.cryptokey.setAddress(this.address);
+		
+		return this.cryptokey;
+	}
+	
 	
 	getPublicKey() {
-		return this.public_key;
+		var cryptokey = this.getCryptoKey();
+		
+		if (cryptokey)
+		return cryptokey.getPublicKey();
 	}
 	
 	setPublicKey(pubkey) {
-		this.public_key = (pubkey ? pubkey.trim().toLowerCase() : pubkey);
+		var cryptokey = this.getCryptoKey();
 		
-		if (!pubkey)
-			return;
-		
-		this.accountencryption.setPublicKey(this.public_key);
+		if (cryptokey)
+		cryptokey.setPublicKey(pubkey);
 	}
 	
 	isPublicKeyValid() {
-		if (!this.public_key)
-			return false;
+		var cryptokey = this.getCryptoKey();
 		
-		return this.accountencryption.isValidPublicKey(this.public_key);
+		if (cryptokey)
+			return cryptokey.isPublicKeyValid()
+		
+		return false;
 	}
 	
 	getPrivateKey() {
-		return this.private_key;
+		var cryptokey = this.getCryptoKey();
+		
+		if (cryptokey)
+			return cryptokey.getPrivateKey();
 	}
 	
 	setPrivateKey(privkey) {
 		var private_key = (privkey ? privkey.trim().toLowerCase() : privkey);
 		
 		try {
-			if (this.accountencryption.isValidPrivateKey(privkey))
-			this.accountencryption.setPrivateKey(private_key);
+			var cryptokey = this.getCryptoKey();
+			
+			if (cryptokey) {
+				cryptokey.setPrivateKey(privkey);
+				this.address = cryptokey.getAddress();
+			}
 		}
 		catch(e) {
 			this.private_key = null;
@@ -182,10 +208,12 @@ var Account = class {
 	}
 	
 	isPrivateKeyValid() {
-		if (!this.private_key)
-			return false;
+		var cryptokey = this.getCryptoKey();
 		
-		return this.accountencryption.isValidPrivateKey(this.private_key);
+		if (cryptokey)
+			return cryptokey.isPrivateKeyValid();
+		
+		return false;
 	}
 	
 	canSignTransactions() {
@@ -249,11 +277,17 @@ var Account = class {
 	}
 	
 	getRsaPublicKey() {
-		return this.rsa_public_key;
+		var cryptokey = this.getCryptoKey();
+		
+		if (cryptokey)
+			return cryptokey.getRsaPublicKey();
 	}
 	
 	setRsaPublicKey(pubkey) {
-		this.rsa_public_key = pubkey;
+		var cryptokey = this.getCryptoKey();
+		
+		if (cryptokey)
+			cryptokey.setRsaPublicKey(pubkey);
 	}
 	
 	rsaEncryptString(plaintext, recipientaccount) {
@@ -284,10 +318,6 @@ var Account = class {
 	static getAccountObject(session, address) {
 		return session.getAccountObject(address);
 	}
-	
-	/*static getWalletAccountObject(session) {
-		return session.getWalletAccountObject();
-	}*/
 	
 }
 

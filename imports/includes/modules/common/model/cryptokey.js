@@ -87,8 +87,27 @@ var CryptoKey = class {
 		return this.address;
 	}
 	
+	setAddress(address) {
+		if (!this.areAddressesEqual(this.address, address)) {
+			this.address = (address ? address.trim().toLowerCase() : address);
+			
+			this.private_key = null;
+			this.public_key = null; // ECE public key
+			this.rsa_public_key = null; // asymmetric
+		}
+	}
+	
 	getPublicKey() {
 		return this.public_key;
+	}
+	
+	setPublicKey(pubkey) {
+		this.public_key = (pubkey ? pubkey.trim().toLowerCase() : pubkey);
+		
+		if (!pubkey)
+			return;
+		
+		this.cryptoencryption.setPublicKey(this.public_key);
 	}
 	
 	getPrivateKey() {
@@ -149,6 +168,10 @@ var CryptoKey = class {
 		return this.rsa_public_key;
 	}
 	
+	setRsaPublicKey(pubkey) {
+		this.rsa_public_key = pubkey;
+	}
+	
 	rsaEncryptString(plaintext, recipientaccount) {
 		return this.cryptoencryption.rsaEncryptString(plaintext, recipientaccount);
 	}
@@ -165,6 +188,16 @@ var CryptoKey = class {
 	validateStringSignature(text, signature) {
 		return this.cryptoencryption.validateStringSignature(text, signature);
 	}
+	
+	// utils
+	areAddressesEqual(address1, address2) {
+		if ((!address1) || (!address2))
+			return false;
+		
+		return (address1.trim().toLowerCase() == address2.trim().toLowerCase());
+	}
+	
+
 }
 
 

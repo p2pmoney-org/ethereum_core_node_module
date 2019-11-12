@@ -151,6 +151,7 @@ var Module = class {
 	}
 	
 	getWeb3ProviderUrl(session) {
+		// return session's default
 		var global = this.global;
 		var ethnodemodule = global.getModuleObject('ethnode');
 
@@ -159,33 +160,60 @@ var Module = class {
 		return web3providerurl;
 	}
 	
-	getWeb3Provider(session) {
+	getWeb3Provider(session, web3providerurl) {
 		var Web3 = this.getWeb3Class(session);
 
 		var global = this.global;
 		var ethnodemodule = global.getModuleObject('ethnode');
 
-		var web3providerurl = ethnodemodule.getWeb3ProviderUrl(session);
-		var web3Provider = new Web3.providers.HttpProvider(web3providerurl);
+		var _web3providerurl = (web3providerurl ? web3providerurl : ethnodemodule.getWeb3ProviderUrl(session));
+		var _web3Provider = new Web3.providers.HttpProvider(_web3providerurl);
 
-		return web3Provider;
+		return _web3Provider;
 	}
 	
-	getWeb3Instance(session) {
-		if (session && session.ethereum_node_access_instance && session.ethereum_node_access_instance.web3instance)
-			return session.ethereum_node_access_instance.web3instance;
+	getWeb3Instance(session, web3providerurl) {
 		
-		var Web3 = this.getWeb3Class();
-		var web3Provider = this.getWeb3Provider(session);
-		  
-		var web3instance = new Web3(web3Provider);		
+		if (!web3providerurl) {
+			// return default
+			if (session && session.ethereum_node_access_instance && session.ethereum_node_access_instance.web3instance)
+				return session.ethereum_node_access_instance.web3instance; 
+			
+			var Web3 = this.getWeb3Class();
+			var web3Provider = this.getWeb3Provider(session);
+			  
+			var web3instance = new Web3(web3Provider);		
+			
+			console.log("web3 instance created");
+			
+			if (session && session.ethereum_node_access_instance)
+				session.ethereum_node_access_instance.web3instance = web3instance;
+			
+			return web3instance;
+		}
+		else {
+			// look in session map
+			if (!session.web3instancemap)
+				session.web3instancemap = Object.create(null);
+			
+			var key = web3providerurl.toLowerCase();
+			
+			if (session.web3instancemap[key])
+				return session.web3instancemap[key];
+			
+			var Web3 = this.getWeb3Class();
+			var web3Provider = this.getWeb3Provider(session, web3providerurl);
+			  
+			var web3instance = new Web3(web3Provider);	
+			
+			console.log("alternate web3 instance created for provider " + web3providerurl);
+			
+			session.web3instancemap[key] = web3instance;
+			
+			return web3instance;
+		}
 		
-		console.log("web3 instance created");
 		
-		if (session && session.ethereum_node_access_instance)
-			session.ethereum_node_access_instance.web3instance = web3instance;
-		
-		return web3instance;
 	}
 	
 	getEthereumJsClass(session) {
@@ -564,7 +592,7 @@ class EthereumTransaction {
 		this.ethereumnodeaccessmodule = ethereumnodeaccessmodule;
 		this.web3_version = ethereumnodeaccessmodule.web3_version;
 		
-		this.web3 = ethereumnodeaccessmodule.getWeb3Instance(session);
+		this.web3 = null;
 	}
 	
 	getTransactionUUID() {
@@ -679,8 +707,30 @@ class EthereumTransaction {
 		this.web3providerurl = url;
 	}
 	
+	_getWeb3Instance() {
+		if (this.web3)
+			return this.web3;
+		
+		var session = this.session;
+		var web3providerurl = this.web3providerurl;
+		var ethereumnodeaccessmodule = this.ethereumnodeaccessmodule;
+
+		this.web3 = ethereumnodeaccessmodule.getWeb3Instance(session, web3providerurl);
+		
+		return this.web3;
+	}
+	
+	_getEthereumNodeAccessInstance() {
+		var session = this.session;
+		var global = session.getGlobalObject();
+		var ethnodemodule = global.getModuleObject('ethnode');
+		var web3providerurl = this.web3providerurl;
+
+		return ethnodemodule.getEthereumNodeAccessInstance(session, web3providerurl);	
+	}
+	
 	getTxJson() {
-		var web3 = this.web3;
+		var web3 = this._getWeb3Instance();
 		
 		var fromaccount = this.sendingaccount;
 		var toaccount = this.recipientaccount;
@@ -729,8 +779,7 @@ class EthereumTransaction {
 		var global = session.getGlobalObject();
 		var ethnodemodule = global.getModuleObject('ethnode');
 		
-		var web3 = this.web3;
-		var web3providerurl = this.getWeb3ProviderUrl();
+		var web3 = this._getWeb3Instance();
 		var fromaccount = this.sendingaccount;
 		var toaccount = this.recipientaccount;
 		
@@ -747,7 +796,7 @@ class EthereumTransaction {
 		var txjson = this.getTxJson();
 		
 		var ethereumnodeaccessmodule = this.ethereumnodeaccessmodule;
-		var EthereumNodeAccess = ethnodemodule.getEthereumNodeAccessInstance(session, web3providerurl);
+		var EthereumNodeAccess = this._getEthereumNodeAccessInstance();
 
 		
 		if (fromaccount.canSignTransactions()) {
@@ -857,16 +906,16 @@ class EthereumNodeAccess {
 	}
 	
 	_getWeb3Provider() {
-		return  this.ethereumnodeaccessmodule.getWeb3Provider(this.session);
+		return  this.ethereumnodeaccessmodule.getWeb3Provider(this.session, this.web3providerurl);
 	}
 	
 	_getWeb3Instance() {
 		if (this.web3instance)
 			return this.web3instance;
 		
-		this.web3instance = this.ethereumnodeaccessmodule.getWeb3Instance(this.session);		
+		this.web3instance = this.ethereumnodeaccessmodule.getWeb3Instance(this.session, this.web3providerurl);		
 		
-		console.log("web3 instance created in EthereumNodeAccess");
+		console.log("web3 instance created in EthereumNodeAccess" + (this.web3providerurl ? " for " + this.web3providerurl : " (with default provider)"));
 		
 		return this.web3instance;
 	}

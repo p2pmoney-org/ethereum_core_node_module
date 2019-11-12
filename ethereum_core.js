@@ -15,7 +15,7 @@ class Ethereum_core {
 	}
 	
 	init(callback) {
-		console.log('ethereum_core init called');
+		console.log('@p2pmoney-org/ethereum_core init called');
 		
 		if (typeof window !== 'undefined') {
 			// we are in react-native
@@ -42,7 +42,7 @@ class Ethereum_core {
 			
 			this.initializationpromise = new Promise(function (resolve, reject) {
 				self.load.init(function() {
-					console.log('ethereum_core init finished');
+					console.log('@p2pmoney-org/ethereum_core init finished');
 					self.initialized = true;
 					
 					if (callback)

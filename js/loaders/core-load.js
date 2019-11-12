@@ -113,6 +113,9 @@ import '../../imports/includes/modules/common/control/controllers.js';
 rootscriptloader.push_import(commonmodulescriptloader, '../../imports/includes/modules/common/model/localstorage.js');
 import '../../imports/includes/modules/common/model/localstorage.js';
 
+rootscriptloader.push_import(commonmodulescriptloader, '../../imports/includes/modules/common/model/localvault.js');
+import '../../imports/includes/modules/common/model/localvault.js';
+
 rootscriptloader.push_import(commonmodulescriptloader, '../../imports/includes/modules/common/model/restconnection.js');
 import '../../imports/includes/modules/common/model/restconnection.js';
 
