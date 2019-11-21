@@ -13,11 +13,18 @@ var RestConnection = class {
 		this.header = Object.create(null);
 	}
 	
+	getRestCallUrl() {
+	    var rest_server_url = this.rest_server_url;
+	    var rest_server_api_path = this.rest_server_api_path;
+		
+	    return rest_server_url + rest_server_api_path ;
+	}
+	
 	addToHeader(keyvalue) {
 		this.header[keyvalue.key] = keyvalue.value;
 	}
 	
-	setRequestHeader(xhttp) {
+	_setRequestHeader(xhttp) {
 	    xhttp.setRequestHeader("Content-type", "application/json");
 	    xhttp.setRequestHeader("sessiontoken", this.session.getSessionUUID());
 		
@@ -26,23 +33,29 @@ var RestConnection = class {
 	    }
 	}
 	
+	_createXMLHttpRequest(method, resource) {
+		var xhttp = new XMLHttpRequest();
+		
+	    var rest_call_url = this.getRestCallUrl();
+	    var resource_url = rest_call_url + resource;
+	    
+		// allow Set-Cookie for CORS calls
+		//xhttp.withCredentials = true;
+		
+	    xhttp.open(method, resource_url, true);
+
+		this._setRequestHeader(xhttp);
+	    
+	    return xhttp;
+	}
+	
 	rest_get(resource, callback) {
 		console.log("RestConnection.rest_get called for resource " + resource);
 		
 		var session = this.session;
 	    
-		var xhttp = new XMLHttpRequest();
-	    
-	    var rest_server_url = this.rest_server_url;
-	    var rest_server_api_path = this.rest_server_api_path;
-	    var resource_url = rest_server_url + rest_server_api_path + resource;
-	    
-	    xhttp.open("GET", resource_url, true);
-	    
-	    /*xhttp.setRequestHeader("Content-type", "application/json");
-	    xhttp.setRequestHeader("sessiontoken", session.getSessionUUID());*/
-	    this.setRequestHeader(xhttp);
-	    
+		var xhttp = this._createXMLHttpRequest("GET", resource);
+		
 	    xhttp.send();
 	    
 	    xhttp.onload = function(e) {
@@ -82,18 +95,8 @@ var RestConnection = class {
 		
 		var session = this.session;
 	    
-		var xhttp = new XMLHttpRequest();
-	    
-	    var rest_server_url = this.rest_server_url;
-	    var rest_server_api_path = this.rest_server_api_path;
-	    var resource_url = rest_server_url + rest_server_api_path + resource;
-	    
-	    xhttp.open("POST", resource_url, true);
-	    
-	    /*xhttp.setRequestHeader("Content-type", "application/json");
-	    xhttp.setRequestHeader("sessiontoken", session.getSessionUUID());*/
-	    this.setRequestHeader(xhttp);
-	    
+		var xhttp = this._createXMLHttpRequest("POST", resource);
+		
 	    xhttp.send(JSON.stringify(postdata));
 	    
 	    xhttp.onload = function(e) {
@@ -133,18 +136,8 @@ var RestConnection = class {
 		
 		var session = this.session;
 	    
-		var xhttp = new XMLHttpRequest();
-	    
-	    var rest_server_url = this.rest_server_url;
-	    var rest_server_api_path = this.rest_server_api_path;
-	    var resource_url = rest_server_url + rest_server_api_path + resource;
-	    
-	    xhttp.open("PUT", resource_url, true);
-	    
-	    /*xhttp.setRequestHeader("Content-type", "application/json");
-	    xhttp.setRequestHeader("sessiontoken", session.getSessionUUID());*/
-	    this.setRequestHeader(xhttp);
-	    
+		var xhttp = this._createXMLHttpRequest("PUT", resource);
+		
 	    xhttp.send(JSON.stringify(postdata));
 	    
 	    xhttp.onload = function(e) {
@@ -183,18 +176,8 @@ var RestConnection = class {
 		
 		var session = this.session;
 	    
-		var xhttp = new XMLHttpRequest();
-	    
-	    var rest_server_url = this.rest_server_url;
-	    var rest_server_api_path = this.rest_server_api_path;
-	    var resource_url = rest_server_url + rest_server_api_path + resource;
-	    
-	    xhttp.open("DELETE", resource_url, true);
-	    
-	    /*xhttp.setRequestHeader("Content-type", "application/json");
-	    xhttp.setRequestHeader("sessiontoken", session.getSessionUUID());*/
-	    this.setRequestHeader(xhttp);
-	    
+		var xhttp = this._createXMLHttpRequest("DELETE", resource);
+		
 	    xhttp.send();
 	    
 	    xhttp.onload = function(e) {

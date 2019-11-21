@@ -4,17 +4,60 @@
 'use strict';
 
 var LocalVault = class {
-	constructor(session, vaultname) {
+	static get CLIENT_VAULT() { return 0;}
+	static get LOCAL_VAULT() { return 1;}
+
+	constructor(session, vaultname, type) {
 		this.session = session;
 		this.vaultname = vaultname;
+		
+		this.type = type;
 		
 		this.cryptokey = null;
 		
 		this.valuemap = Object.create(null);
+		
 	}
 	
-	getCryptoKey() {
+	getCryptoKeyObject() {
 		return this.cryptokey;
+	}
+	
+	_read(keys, callback) {
+		var session =this.session;
+		var localStorage = session.getLocalStorageObject();
+		var clientAccess = session.getClientStorageAccessInstance();
+		
+		switch (this.type) {
+			case LocalVault.CLIENT_VAULT:
+				clientAccess.readUserJson(keys, callback);
+				break;
+			case LocalVault.LOCAL_VAULT:
+				localStorage.readLocalJson(keys, true, callback);
+				break;
+			default:
+				clientAccess.readUserJson(keys, callback);
+				break;
+		}
+		
+	}
+	
+	_save(keys, json, callback) {
+		var session =this.session;
+		var localStorage = session.getLocalStorageObject();
+		var clientAccess = session.getClientStorageAccessInstance();
+		
+		switch (this.type) {
+			case LocalVault.CLIENT_VAULT:
+				clientAccess.saveUserJson(keys, json, callback);
+				break;
+			case LocalVault.LOCAL_VAULT:
+				localStorage.saveLocalJson(keys, json, callback);
+				break;
+			default:
+				clientAccess.saveUserJson(keys, json, callback);
+				break;
+		}
 	}
 	
 	unlock(passphrase, callback) {
@@ -22,15 +65,15 @@ var LocalVault = class {
 		var vaultname = this.vaultname;
 
 		// read crypto key
-		var localStorage = session.getLocalStorageObject();
-		var keys = ['common', 'vaults', vaultname, 'keystore'];
-		var bForceRefresh = true;
-		
 		var cryptokey = session.createBlankCryptoKeyObject();
-		this.cryptokey = cryptokey;
-		var cryptokeyencryptioninstance = session.getCryptoKeyEncryptionInstance(this.cryptokey);
+		var cryptokeyencryptioninstance = session.getCryptoKeyEncryptionInstance(cryptokey);
 		
-		localStorage.readLocalJson(keys, bForceRefresh, (err, res) => {
+		// set crypto key origin
+		cryptokey.setOrigin({storage: 'vault', vaultname: vaultname});
+		
+		var keys = ['common', 'vaults', vaultname, 'keystore'];
+
+		this._read(keys, (err, res) => {
 			var key_uuid = (res ? res.key_uuid : null);
 			var keystorestring = (res ? res.content : null);
 			
@@ -40,16 +83,23 @@ var LocalVault = class {
 			if (privatekey) {
 				cryptokey.setKeyUUID(key_uuid);
 				cryptokey.setPrivateKey(privatekey);
+				
+				this.cryptokey = cryptokey;
+				
+				// then read value
+				this.readValues((err, res) =>  {
+					if (callback)
+						callback(null, this);
+				});
+				
+			}
+			else {
+				if (callback)
+					callback('no key found', null);
 			}
 			
-			// then read value
-			this.readValues((err, res) =>  {
-				if (callback)
-					callback((privatekey ? null : 'no key found'), this);
-				
-			});
-			
 		});
+		
 	}
 	
 	lock() {
@@ -77,7 +127,7 @@ var LocalVault = class {
 					
 					var json = {key_uuid: key_uuid, filename: filename, content: keystorestring};
 					
-					localStorage.saveLocalJson(keys, json, function(err, res) {
+					this._save(keys, json, (err, res) => {
 						if (callback)
 							callback(err, (err ? null : vault));
 					});
@@ -102,15 +152,13 @@ var LocalVault = class {
 		
 		var session = this.session;
 		var vaultname = this.vaultname;
-
-		// read encrypted value
-		var localStorage = session.getLocalStorageObject();
-		var keys = ['common', 'vaults', vaultname, 'values'];
-		var bForceRefresh = true;
 		
 		var cryptokey = this.cryptokey;
 		
-		localStorage.readLocalJson(keys, bForceRefresh, (err, res) => {
+		// read encrypted value
+		var keys = ['common', 'vaults', vaultname, 'values'];
+
+		this._read(keys, (err, res) => {
 			var encryptedvaluestring = (res ? res.encryptedvalues : null);
 			var plainvaluestring;
 			var json;
@@ -135,7 +183,7 @@ var LocalVault = class {
 			if (callback)
 				callback(null, this.valuemap);
 		});
-		
+
 	}
 	
 	getValue(key) {
@@ -148,7 +196,6 @@ var LocalVault = class {
 		var vaultname = this.vaultname;
 
 		// stringify, encrypt and save
-		var localStorage = session.getLocalStorageObject();
 		var keys = ['common', 'vaults', vaultname, 'values'];
 		
 		var cryptokey = this.cryptokey;
@@ -161,7 +208,7 @@ var LocalVault = class {
 		
 		var json = {key_uuid: key_uuid, encryptedvalues: encryptedvaluestring};
 		
-		localStorage.saveLocalJson(keys, json, function(err, res) {
+		this._save(keys, json, (err, res) => {
 			if (callback)
 				callback(err, res);
 		});
@@ -189,25 +236,35 @@ var LocalVault = class {
 	}
 	
 	// static
-	static openVault(session, vaultname, passphrase, callback) {
-		if (!vaultname.match("^[A-Za-z0-9]+$")) {
+	
+	static _getSafeVaultName(session, vaultname, type) {
+		var safename = vaultname;
+		
+		var localStorage = session.getLocalStorageObject();
+
+		if (!localStorage.isValidKey(vaultname)) {
+			return;
+		}
+		
+		return safename;
+	}
+
+	static openVault(session, vaultname, passphrase, type, callback) {
+		var safevaultname = LocalVault._getSafeVaultName(session, vaultname, type);
+
+		if (!safevaultname) {
 			if (callback)
-				callback('vault name can only contain alphanumeric characters: ' + vaulname, null);
+				callback('vault name can only contain safe characters: ' + vaultname, null);
 			
 			return;
 		}
 		
-		var vault = new LocalVault(session, vaultname);
+		var vault = new LocalVault(session, safevaultname, type);
 		
 		// put in map
-		var vaultmap = session.getSessionVariable('vaultmap');
+		var vaultmap = session.vaultmap;
 		
-		if (!vaultmap) {
-			vaultmap = Object.create(null);
-			session.setSessionVariable('vaultmap', vaultmap);
-		}
-		
-		vaultmap[vaultname] = vault;
+		vaultmap[vaultname + '-type' + type] = vault;
 		
 		vault.unlock(passphrase, function(err, res) {
 			if (callback)
@@ -215,36 +272,31 @@ var LocalVault = class {
 		});
 	}
 	
-	static createVault(session, vaultname, passphrase, callback) {
-		if (!vaultname.match("^[A-Za-z0-9]+$")) {
+	static createVault(session, vaultname, passphrase, type, callback) {
+		var safevaultname = LocalVault._getSafeVaultName(session, vaultname, type);
+
+		if (!safevaultname) {
 			if (callback)
-				callback('vault name can only contain alphanumeric characters: ' + vaulname, null);
+				callback('vault name can only contain safe characters: ' + vaultname, null);
 			
 			return;
 		}
 		
 		// check vault with this name does not exist
-		var localStorage = session.getLocalStorageObject();
-		var keys = ['common', 'vaults', vaultname, 'keystore'];
-		var bForceRefresh = true;
+		var vault = new LocalVault(session, vaultname, type);
+
+		var keys = ['common', 'vaults', safevaultname, 'keystore'];
 		
-		localStorage.readLocalJson(keys, bForceRefresh, function(err, res) {
+		vault._read(keys, (err, res) => {
 			if(res) {
 				if (callback)
 					callback('vault with this name already exists: ' + vaultname, null);
 			}
 			else {
-				var vault = new LocalVault(session, vaultname);
-
 				// put in map
-				var vaultmap = session.getSessionVariable('vaultmap');
+				var vaultmap = session.vaultmap;
 				
-				if (!vaultmap) {
-					vaultmap = Object.create(null);
-					session.setSessionVariable('vaultmap', vaultmap);
-				}
-				
-				vaultmap[vaultname] = vault;
+				vaultmap[vaultname + '-type' + type] = vault;
 				
 				// create a crypto key
 				var cryptokey = session.createBlankCryptoKeyObject();
@@ -254,6 +306,9 @@ var LocalVault = class {
 
 				var privkey = cryptokeyencryptioninstance.generatePrivateKey();
 				cryptokey.setPrivateKey(privkey);
+				
+				// set crypto key origin
+				cryptokey.setOrigin({storage: 'memory'});
 				
 				// get keystore string
 				var keystorestring =  cryptokeyencryptioninstance.getPrivateKeyStoreString(passphrase);
@@ -265,7 +320,7 @@ var LocalVault = class {
 					
 					var json = {key_uuid: key_uuid, filename: filename, content: keystorestring};
 					
-					localStorage.saveLocalJson(keys, json, function(err, res) {
+					vault._save(keys, json, function(err, res) {
 						if (callback)
 							callback(err, (err ? null : vault));
 					});
@@ -280,15 +335,14 @@ var LocalVault = class {
 		
 	}
 	
-	static getVault(session, vaultname) {
-		var vaultmap = session.getSessionVariable('vaultmap');
+	static getVaultObject(session, vaultname, type) {
+		var vaultmap = session.vaultmap;
 		
-		if (!vaultmap) {
-			vaultmap = Object.create(null);
-			session.setSessionVariable('vaultmap', vaultmap);
-		}
-		
-		return vaultmap[vaultname];
+		return vaultmap[vaultname + '-type' + type];
+	}
+	
+	static getVaultObjects(session) {
+		return session.getVaultObjects();
 	}
 }
 

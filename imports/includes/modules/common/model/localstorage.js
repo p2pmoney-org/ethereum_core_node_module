@@ -28,6 +28,8 @@ var CacheStorage = class {
 }
 
 var LocalStorage = class {
+	static get KEY_VALIDATION_REGEX() { return "^[A-Za-z0-9@+.]+$";}
+
 	constructor(session) {
 		this.session = session;
 		
@@ -43,12 +45,19 @@ var LocalStorage = class {
 		this.storagemap.empty();
 	}
 	
+	isValidKey(key) {
+		if (key)
+			return key.match(LocalStorage.KEY_VALIDATION_REGEX);
+		else
+			return false;
+	}
+	
 	keystostring(keys) {
 		var key = '';
 		
 		for (var i =0; i < keys.length; i++) {
-			if (!keys[i].match("^[A-Za-z0-9]+$"))
-				throw 'keys can only contain alphanumeric values: ' + keys[i];
+			if (!this.isValidKey(keys[i]))
+				throw 'keys can only contain safe characters: ' + keys[i];
 
 			key += (i > 0 ? '-' : '') + keys[i].toLowerCase();
 		}

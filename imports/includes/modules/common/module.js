@@ -319,32 +319,38 @@ var Module = class {
 	}
 	
 	// vaults
-	openVault(session, vaultname, passphrase, callback) {
+	openVault(session, vaultname, passphrase, type, callback) {
 		var LocalVault = this.LocalVault;
 		
-		LocalVault.openVault(session, vaultname, passphrase, callback);
+		LocalVault.openVault(session, vaultname, passphrase, type, callback);
 	}
 	
-	createVault(session, vaultname, passphrase, callback) {
+	createVault(session, vaultname, passphrase, type, callback) {
 		var LocalVault = this.LocalVault;
 		
-		LocalVault.createVault(session, vaultname, passphrase, callback);
+		LocalVault.createVault(session, vaultname, passphrase, type, callback);
 	}
 	
-	getFromVault(session, vaultname, key) {
+	getVaultObjects(session) {
+		var LocalVault = this.LocalVault;
+
+		return LocalVault.getVaultObjects(session);
+	}
+	
+	getFromVault(session, vaultname, vaulttype, key) {
 		var LocalVault = this.LocalVault;
 		
-		var vault = LocalVault.getVault(session, vaultname);
+		var vault = LocalVault.getVaultObject(session, vaultname, vaulttype);
 		
 		if (vault) {
 			return vault.getValue(key);
 		}
 	}
 
-	putInVault(session, vaultname, key, value, callback) {
+	putInVault(session, vaultname, vaulttype, key, value, callback) {
 		var LocalVault = this.LocalVault;
 		
-		var vault = LocalVault.getVault(session, vaultname);
+		var vault = LocalVault.getVaultObject(session, vaultname, vaulttype);
 		
 		if (vault) {
 			vault.putValue(key, value, callback);

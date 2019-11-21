@@ -58,6 +58,10 @@ var Module = class {
 	// optional  module functions
 	
 	// objects
+	getClientStorageAccessInstance(session) {
+		return new StorageAccess(session);
+	}
+	
 	getStorageAccessInstance(session) {
 		if (session.storage_access_instance)
 			return session.storage_access_instance;
@@ -322,6 +326,13 @@ class StorageAccess {
 					var jsonarray = res;
 					
 					var keysjson = cryptoencryptionmodule.decryptJsonArray(session, jsonarray);
+					
+					// add the origin of the keys
+					var origin = {storage: 'local'};
+					for (var i = 0; i < keysjson.length; i++) {
+						var key = keysjson[i];
+						key.origin = origin;
+					}
 					
 					var json = {keys: keysjson};
 					

@@ -21,18 +21,18 @@ var ModuleControllers = class {
 		values['gaslimit'] = gaslimit;
 		values['gasprice'] = gasPrice;
 		
-		var walletaddress = null;
+		var walletaccount = null;
 		
 		if (session) {
 			var sessionaccount = session.getMainSessionAccountObject();
 			
 			if (sessionaccount) {
-				walletaddress = sessionaccount.getAddress();
+				walletaccount = sessionaccount;
 			}
 			else {
 				if (ethnodemodule.useWalletAccount()) {
 					// do we pay everything from a single wallet
-					walletaddress = ethnodemodule.getWalletAccountAddress(session);
+					walletaccount = ethnodemodule.getWalletAccountObject(session);
 				}
 				else {
 					console.log('not using wallet account');
@@ -40,15 +40,12 @@ var ModuleControllers = class {
 				}
 			}
 			
-			if (walletaddress) {
-				
-				values['walletused'] = walletaddress;
+			if (walletaccount) {
+				values['walletused'] = walletaccount.getAddress();
 				
 				if (divcue) {
 					// we display the balance in the div passed
-					var wallet = commonmodule.getAccountObject(session, walletaddress);
-					
-					this.writebalance(session, wallet, divcue);
+					this.writebalance(session, walletaccount, divcue);
 				}
 			}
 		}
@@ -149,28 +146,27 @@ var ModuleControllers = class {
 			values['gaslimit'] = gaslimit;
 			values['gasprice'] = gasPrice;
 			
-			var walletaddress = null;
+			var walletaccount = null;
 			
 			var isLocalOnly = contract.isLocalOnly();
 			
 			if (ethnodemodule.useWalletAccount()) {
 				// do we pay everything from a single wallet
-				walletaddress = ethnodemodule.getWalletAccountAddress(session);
+				walletaccount = ethnodemodule.getWalletAccountObject(session);
 			}
 			else {
 				// or from the wallet of the owner of the contract
 				walletaddress = contract.getLocalOwner();
+				walletaccount = commonmodule.getAccountObject(session, walletaddress);
 			}
 			
-			if (walletaddress) {
+			if (walletaccount) {
 				
-				values['walletused'] = walletaddress;
+				values['walletused'] = walletaccount.getAddress();
 				
 				if (divcue) {
 					// we display the balance in the div passed
-					var wallet = commonmodule.getAccountObject(session, walletaddress);
-					
-					this.writebalance(session, wallet, divcue);
+					this.writebalance(session, walletaccount, divcue);
 				}
 			}
 		}
@@ -183,6 +179,7 @@ var ModuleControllers = class {
 		var ether = this.module.getEtherFromwei(wei);
 		return ether.toFixed(decimal);
 	}
+
 	
 	writebalance(session, wallet, divbalance) {
 		console.log('spawning write of getBalance');

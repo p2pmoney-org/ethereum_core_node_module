@@ -164,8 +164,24 @@ var Module = class {
 		
 		console.log('jsonarray length is ' + (jsonarray ? jsonarray.length : 0));
 		
+		// list of available owners (user and vaults)
+		var owneruuidarray = [];
+		
 		var user = session.getSessionUserObject();
 		var useruuid = (user ? user.getUserUUID() : null);
+		
+		owneruuidarray.push(useruuid);
+		
+		// crypto-keys
+		var cryptokeyarray = session.getSessionCryptoKeyObjects();
+		
+		for (var i = 0; i < (cryptokeyarray ? cryptokeyarray.length : 0); i++) {
+			var cryptokey = cryptokeyarray[i];
+			var origin = cryptokey.getOrigin();
+			if ( origin && (origin.storage == 'vault')) {
+				owneruuidarray.push(cryptokey.getKeyUUID());
+			}
+		}
 		
 		var keysjson = [];
 
@@ -174,7 +190,7 @@ var Module = class {
 			var owneruuid = (jsonarray[i]['owner_uuid'] ? jsonarray[i]['owner_uuid'] : null);
 			
 			// we keep only our entries, based on owneruuid
-			if (owneruuid == useruuid) {
+			if (owneruuidarray.indexOf(owneruuid) != -1) {
 				var keyuuid = (jsonarray[i]['key_uuid'] ? jsonarray[i]['key_uuid'] : (jsonarray[i]['uuid'] ? jsonarray[i]['uuid'] : null));
 				var address = (jsonarray[i]['address'] ? jsonarray[i]['address'] : null);
 				var encryptedprivatekey = (jsonarray[i]['private_key'] ? jsonarray[i]['private_key'] : null);
@@ -386,6 +402,9 @@ class CryptoKeyEncryption {
 	}
 	
 	readPrivateKeyFromStoreString(keystorestring, passphrase) {
+		if (!keystorestring)
+			return;
+		
 		var _privatekey;
 		
 		var keythereum = this.getKeythereumClass();

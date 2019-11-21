@@ -29,13 +29,15 @@ var CryptoKeyMap = class {
 	}
 	
 	pushCryptoKey(cryptokey) {
+		if (!cryptokey || !cryptokey.address)
+			return;
+		
 		var entry = cryptokey.address.toString().trim().toLowerCase();
 
-		// TODO: we could check if we have already this cryptokey
-		// and check that we do not replace an object with a private key
-		// with an object that does not have one
+		// we only add proper crypto keys
 		if (!cryptokey.getPrivateKey()) {
 			console.log('pushing cryptokey ' + cryptokey + ' with no private key');
+			return;
 		}
 
 		// simple replace
@@ -67,6 +69,10 @@ var CryptoKey = class {
 		
 		this.keyuuid = null;
 		
+		this.origin = null;
+		
+		this.owner = null;
+		
 		// encryption
 		this.private_key = null;
 		this.public_key = null; // ECE public key
@@ -81,6 +87,25 @@ var CryptoKey = class {
 	
 	setKeyUUID(uuid) {
 		this.keyuuid = uuid;
+	}
+	
+	getOrigin() {
+		return this.origin;
+	}
+	
+	setOrigin(origin) {
+		if (!origin || !origin.storage)
+			return;
+		
+		this.origin = origin;
+	}
+	
+	getOwner() {
+		return this.owner;
+	}
+	
+	setOwner(user) {
+		this.owner = user;
 	}
 	
 	getAddress() {

@@ -560,7 +560,12 @@ var Module = class {
 			var global = this.global;
 			var commonmodule = global.getModuleObject('common');
 			
-			return commonmodule.getAccountObject(session, address);
+			var walletaccount = commonmodule.getAccountObject(session, address);
+			
+			walletaccount.setDescription(global.t('default wallet'));
+			walletaccount.setOrigin({storage: 'configuration'});
+			
+			return walletaccount;
 		}
 	}
 
