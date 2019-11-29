@@ -476,6 +476,35 @@ var Session = class {
 		return this.accountmap.getAccountArray();
 	}
 	
+	findAccountObjectFromUUID(bForceRefresh, accountuuid, callback) {
+		this.getAccountObjects(bForceRefresh, (err, res) => {
+			if (callback) {
+				if (!err) {
+					var account = this.accountmap.getAccountFromUUID(accountuuid);
+					
+					callback((account ? null : 'could not find account with uuid ' + accountuuid), account);
+				}
+				else {
+					callback(err, null);
+				}
+			}
+		});
+		
+		return this.accountmap.getAccountFromUUID(accountuuid);
+	}
+	
+	findAccountsObjectsFromAddress(bForceRefresh, address, callback) {
+		this.getAccountObjects(bForceRefresh, (err, res) => {
+			if (callback) {
+				var accounts = this.accountmap.getAccountObjects(address);
+				
+				callback((accounts || (accounts.length == 0) ? null : 'could not find account with address ' + address), accounts);
+			}
+		});
+		
+		return this.accountmap.getAccountObjects(address);
+	}
+	
 
 	// user (impersonation)
 	impersonateUser(user) {
@@ -715,6 +744,7 @@ var Session = class {
 			var description = key['description'];
 			
 			var origin = (key['origin'] ? key['origin'] : {storage: 'unknown'});
+			var isactivated = (key['activated'] !== null ? key['activated'] : true);
 
 			
 			var account = commonmodule.createBlankAccountObject(this);
@@ -723,6 +753,7 @@ var Session = class {
 			account.setDescription(description);
 
 			account.setOrigin(origin);
+			account.setActivated(isactivated);
 
 			
 			if (privatekey) {

@@ -8,7 +8,7 @@ var AccountMap = class {
 		this.map = Object.create(null); // use a simple object to implement the map
 	}
 	
-	getAccounts(address) {
+	getAccountObjects(address) {
 		var key = address.toString().trim().toLowerCase();
 		
 		if (key in this.map) {
@@ -28,11 +28,25 @@ var AccountMap = class {
 	}
 		
 	getAccount(address) {
-		var array = this.getAccounts(address);
+		console.log('WARNING: you should call getAccountFromUUID to retrieve a specific account object!');
+		
+		var array = this.getAccountObjects(address);
 		
 		if (array)
 			return array[0]; // return first by default
 	}
+	
+	getAccountFromUUID(accountuuid) {
+		var accountarray = this.getAccountArray();
+		
+		for (var i = 0; i < accountarray.length; i++) {
+			var account = accountarray[i];
+			
+			if (account.getAccountUUID() == accountuuid)
+				return account;
+		}
+	}
+
 	
 	getAccountArray() {
 		var array = [];
@@ -62,18 +76,30 @@ var AccountMap = class {
 		var key = account.address.toString().trim().toLowerCase();
 		var entry = this.map[key];
 		var accountstorage = (account.getOrigin() !== null ? account.getOrigin().storage : null);
+		var accountuuid = account.getAccountUUID();
 		
 		if (entry) {
-			// entry already exists, check if we arealdy had a collision
+			// entry already exists, check if we already had a collision
 			
 			if (Array.isArray(entry)) {
 				//already had collision
 				var bExist = false;
 				
 				for (var i = 0; i < entry.length; i++) {
-					var currentstorage = (entry[i].getOrigin() !== null ? entry[i].getOrigin().storage : null);
+					/*var currentstorage = (entry[i].getOrigin() !== null ? entry[i].getOrigin().storage : null);
 					
 					if (accountstorage && (accountstorage == currentstorage)) {
+						bExist = true;
+
+						// replace (only if previous didn't have a private key)
+						if (!entry[i].getPrivateKey()) {
+							entry[i] = account;
+						}
+					}*/
+					
+					var currentuuid = entry[i].getAccountUUID();
+					
+					if (accountuuid == currentuuid) {
 						bExist = true;
 
 						// replace (only if previous didn't have a private key)
@@ -91,9 +117,29 @@ var AccountMap = class {
 			else {
 				// simple account as an entry
 				// look if we have now a collision from different storage or simple replacement
-				var currentstorage = (entry.getOrigin() !== null ? entry.getOrigin().storage : null);
+				/*var currentstorage = (entry.getOrigin() !== null ? entry.getOrigin().storage : null);
 				
 				if (accountstorage && (accountstorage == currentstorage)) {
+					// simple replacement
+
+					// we check that we do not replace an object with a private key
+					// with an object that does not have one
+					if (entry.getPrivateKey()) {
+						if (!account.getPrivateKey()) {
+							console.log('pushing account ' + key + ' with no private key');
+						}
+						else {
+							this.map[key] = account;
+						}
+						
+					}
+					else{
+						this.map[key] = account;
+					}
+				}*/
+				var currentuuid = entry.getAccountUUID();
+				
+				if (accountuuid == currentuuid) {
 					// simple replacement
 
 					// we check that we do not replace an object with a private key
@@ -113,7 +159,7 @@ var AccountMap = class {
 				}
 				else {
 					// collision, we create an array to hold
-					// accounts from different storage for this address
+					// accounts with different uuid (e.g. from different storage) for this address
 					var newentry = [];
 					
 					newentry.push(entry);
@@ -136,6 +182,7 @@ var AccountMap = class {
 		
 		var entry = this.map[key];
 		var accountstorage = (account.getOrigin() !== null ? account.getOrigin().storage : null);
+		var accountuuid = account.getAccountUUID();
 		
 		if (entry) {
 			if (Array.isArray(entry)) {
@@ -143,9 +190,12 @@ var AccountMap = class {
 				var bSpliced = false;
 				
 				for (var i = 0; i < entry.length; i++) {
-					var currentstorage = (entry[i].getOrigin() !== null ? entry[i].getOrigin().storage : null);
+					/*var currentstorage = (entry[i].getOrigin() !== null ? entry[i].getOrigin().storage : null);
 					
-					if (accountstorage && (accountstorage == currentstorage)) {
+					if (accountstorage && (accountstorage == currentstorage)) {*/
+					var currentuuid = entry[i].getAccountUUID();
+					
+					if (accountuuid == currentuuid) {
 						// omit this one
 						bSpliced = true;
 					}
@@ -158,9 +208,12 @@ var AccountMap = class {
 					this.map[key] = newentry;
 			}
 			else {
-				var currentstorage = (entry.getOrigin() !== null ? entry.getOrigin().storage : null);
+				/*var currentstorage = (entry.getOrigin() !== null ? entry.getOrigin().storage : null);
 				
-				if (accountstorage == currentstorage)
+				if (accountstorage == currentstorage)*/
+				var currentuuid = entry[i].getAccountUUID();
+				
+				if (accountuuid == currentuuid)
 				delete this.map[key];
 			}
 		}
@@ -171,8 +224,8 @@ var AccountMap = class {
 	}
 	
 	count() {
-		var array = this.getAccountArray();
-		return array.length;
+		// number of different addresses
+		return Object.keys(this.map).length;
 	}
 	
 	empty() {
@@ -196,6 +249,8 @@ var Account = class {
 		this.accountuuid = null;
 		
 		this.origin = null;
+		
+		this.isactivated = true;
 		
 		// encryption
 		this.cryptokey = null;
@@ -275,6 +330,19 @@ var Account = class {
 		this.description = description;
 	}
 	
+	isActivated() {
+		return this.isactivated;
+	}
+	
+	setActivated(choice) {
+		if (choice === false) {
+			this.isactivated = false;
+		}
+		else if (choice === true) {
+			this.isactivated = true;
+		}
+	}
+	
 	getCryptoKey() {
 		if (this.cryptokey)
 			return this.cryptokey;
@@ -287,6 +355,9 @@ var Account = class {
 			this.cryptokey.setPrivateKey(this.private_key);
 		else
 			this.cryptokey.setAddress(this.address);
+		
+		this.cryptokey.setOrigin({storage: 'memory'});
+		this.cryptokey.setOwner(this.getOwner());
 		
 		return this.cryptokey;
 	}

@@ -147,7 +147,7 @@ var LocalStorage = class {
 			}
 			else {
 				if (self._hasItemChildren(parentjson[key])) {
-					self._replaceJsonLeaves(parentjson[key], uuid, childjson);
+					self._replaceJsonLeaves(parentjson[key], uuid, uuidfieldname, childjson);
 				}
 			}
 		});
@@ -162,6 +162,59 @@ var LocalStorage = class {
 		//console.log('local json is ' + JSON.stringify(localjson));
 		
 		this._replaceJsonLeaves(localjson, uuid, fieldname, json);
+		
+	}
+	
+	_removeJsonLeaves(parentjson, uuid, uuidfieldname) {
+		if (!parentjson)
+			return;
+
+		var self = this;
+		var fieldname = (uuidfieldname ? uuidfieldname : 'uuid');
+		var keydeleted = false;
+		
+		Object.keys(parentjson).forEach(function(key) {
+			
+			if (self._hasItemUUID(parentjson[key], uuid, fieldname)) {
+				console.log('removing for key ' + key + ' json ' + JSON.stringify(parentjson[key]));
+				
+				delete parentjson[key];
+				keydeleted = true;
+			}
+			else {
+				if (self._hasItemChildren(parentjson[key])) {
+					self._removeJsonLeaves(parentjson[key], uuidfieldname);
+				}
+			}
+		});
+		
+		if (Array.isArray(parentjson) && keydeleted) {
+			// we re-index the array, removing null elements
+			var newarray = [];
+			
+			for (var i = 0; i < parentjson.length; i++) {
+				if (parentjson[i])
+					newarray.push(parentjson[i]);
+			}
+			
+			// empty and reload
+			parentjson.length = 0;
+			
+			for (var i = 0; i < newarray.length; i++) {
+				if (newarray[i])
+					parentjson.push(newarray[i]);
+			}
+		}
+	}
+	
+	removeLocalJsonLeaf(keys, uuid, uuidfieldname) {
+		var fieldname = (uuidfieldname ? uuidfieldname : 'uuid');
+		console.log('remove json leaf with ' + fieldname + ' ' + uuid);
+
+		var session = this.session;
+		var localjson = this.readLocalJson(keys);
+		
+		this._removeJsonLeaves(localjson, uuid, fieldname);
 		
 	}
 	

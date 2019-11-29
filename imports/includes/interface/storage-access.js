@@ -331,7 +331,13 @@ class StorageAccess {
 					var origin = {storage: 'local'};
 					for (var i = 0; i < keysjson.length; i++) {
 						var key = keysjson[i];
-						key.origin = origin;
+						
+						if (!key.origin) {
+							key.origin = origin;
+						}
+						else {
+							Object.assign(key.origin, origin);
+						}
 					}
 					
 					var json = {keys: keysjson};
@@ -429,7 +435,7 @@ class StorageAccess {
 			var uuid = account.getAccountUUID();
 			
 			if (!uuid) {
-				throw 'account has not uuid, can not update it';
+				throw 'account has no uuid, can not update it';
 			}
 			
 
@@ -462,6 +468,144 @@ class StorageAccess {
 			
 			/*if (callback)
 				callback(null, jsonleaf);*/
+			
+			// save
+			var useraccountjson = commonmodule.readLocalJson(session, keys); // from cache, since no refresh
+			commonmodule.saveLocalJson(session, keys, useraccountjson, callback);
+			
+			return resolve(jsonleaf);
+		});
+		
+		return promise;
+	}
+	
+	user_reactivate_account(user, account, callback) {
+		console.log("StorageAccess.user_reactivate_account called");
+		
+		var self = this;
+		var session = this.session;
+		var global = session.getGlobalObject();
+		var cryptoencryptionmodule = global.getModuleObject('cryptokey-encryption');
+		
+		var promise = new Promise(function (resolve, reject) {
+			var keys = ['accounts'];
+			
+			var uuid = account.getAccountUUID();
+			
+			if (!uuid) {
+				throw 'account has no uuid, can not update it';
+			}
+			
+
+			// local storage
+			var commonmodule = global.getModuleObject('common');
+			
+			var jsonleaf = commonmodule.getLocalJsonLeaf(session, keys, uuid);
+			
+			if (jsonleaf) {
+				var json = {uuid: uuid, 
+							owner_uuid: jsonleaf.owner_uuid, 
+							address: jsonleaf.address, 
+							private_key: jsonleaf.private_key, 
+							description: jsonleaf.description,
+							activated: true
+						}; // can only update activated field
+				
+				
+				commonmodule.updateLocalJsonLeaf(session, keys, uuid, json);
+			}
+			else {
+				throw 'could not find account with uuid ' + uuid;
+			}
+			
+			// save
+			var useraccountjson = commonmodule.readLocalJson(session, keys); // from cache, since no refresh
+			commonmodule.saveLocalJson(session, keys, useraccountjson, callback);
+			
+			return resolve(jsonleaf);
+		});
+		
+		return promise;
+	}
+	
+	user_deactivate_account(user, account, callback) {
+		console.log("StorageAccess.user_deactivate_account called");
+		
+		var self = this;
+		var session = this.session;
+		var global = session.getGlobalObject();
+		var cryptoencryptionmodule = global.getModuleObject('cryptokey-encryption');
+		
+		var promise = new Promise(function (resolve, reject) {
+			var keys = ['accounts'];
+			
+			var uuid = account.getAccountUUID();
+			
+			if (!uuid) {
+				throw 'account has no uuid, can not update it';
+			}
+			
+
+			// local storage
+			var commonmodule = global.getModuleObject('common');
+			
+			var jsonleaf = commonmodule.getLocalJsonLeaf(session, keys, uuid);
+			
+			if (jsonleaf) {
+				var json = {uuid: uuid, 
+							owner_uuid: jsonleaf.owner_uuid, 
+							address: jsonleaf.address, 
+							private_key: jsonleaf.private_key, 
+							description: jsonleaf.description,
+							activated: false
+						}; // can only update activated field
+				
+				
+				commonmodule.updateLocalJsonLeaf(session, keys, uuid, json);
+			}
+			else {
+				throw 'could not find account with uuid ' + uuid;
+			}
+			
+			// save
+			var useraccountjson = commonmodule.readLocalJson(session, keys); // from cache, since no refresh
+			commonmodule.saveLocalJson(session, keys, useraccountjson, callback);
+			
+			return resolve(jsonleaf);
+		});
+		
+		return promise;
+	}
+	
+	user_remove_account(user, account, callback) {
+		console.log("StorageAccess.user_remove_account called");
+		
+		var self = this;
+		var session = this.session;
+		var global = session.getGlobalObject();
+		var cryptoencryptionmodule = global.getModuleObject('cryptokey-encryption');
+		
+		var promise = new Promise(function (resolve, reject) {
+			var keys = ['accounts'];
+			
+			var uuid = account.getAccountUUID();
+			
+			if (!uuid) {
+				throw 'account has no uuid, can not update it';
+			}
+			
+
+			// local storage
+			var commonmodule = global.getModuleObject('common');
+			
+			var jsonleaf = commonmodule.getLocalJsonLeaf(session, keys, uuid);
+			
+			if (jsonleaf) {
+				commonmodule.removeLocalJsonLeaf(session, keys, uuid);
+			}
+			else {
+				throw 'could not find account with uuid ' + uuid;
+			}
 			
 			// save
 			var useraccountjson = commonmodule.readLocalJson(session, keys); // from cache, since no refresh

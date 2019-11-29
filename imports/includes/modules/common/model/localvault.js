@@ -174,7 +174,7 @@ var LocalVault = class {
 				
 				for (var key in json) {
 				    if (json.hasOwnProperty(key)) {
-				        this.valuemap.key = json.key;
+				        this.valuemap[key] = json[key];
 				    }
 				}
 				

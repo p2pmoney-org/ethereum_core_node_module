@@ -3,7 +3,7 @@
 var Module = class {
 	constructor() {
 		this.name = 'common';
-		this.current_version = "0.12.2.2019.11.23";
+		this.current_version = "0.13.0.2019.12.05";
 		
 		this.global = null; // put by global on registration
 		this.isready = false;
@@ -141,6 +141,15 @@ var Module = class {
 
 		var localstorage = session.getLocalStorageObject();
 		return localstorage.insertLocalJsonLeaf(_keys, parentuuid, collectionname, json, uuidfieldname);
+	}
+	
+	removeLocalJsonLeaf(session, keys, uuid, uuidfieldname) {
+		var commonkeys = ['common'];
+		
+		var _keys = commonkeys.concat(keys);
+
+		var localstorage = session.getLocalStorageObject();
+		return localstorage.removeLocalJsonLeaf(_keys, uuid, uuidfieldname);
 	}
 	
 	// async
@@ -304,6 +313,30 @@ var Module = class {
 		var global = session.getGlobalObject();
 		
 		return session.getAccountObject(address);
+	}
+	
+	findAccountObjectFromUUID(session, bForceRefresh, accountuuid, callback) {
+		var global = this.global;
+		
+		var SessionClass = (typeof Session !== 'undefined' ? Session : global.getModuleObject('common').Session);
+		if (session instanceof SessionClass !== true)
+			throw 'must pass a session object as first parameter!';
+		
+		var global = session.getGlobalObject();
+		
+		return session.findAccountObjectFromUUID(bForceRefresh, accountuuid, callback);
+	}
+	
+	findAccountObjectsFromAddress(session, bForceRefresh, address, callback) {
+		var global = this.global;
+		
+		var SessionClass = (typeof Session !== 'undefined' ? Session : global.getModuleObject('common').Session);
+		if (session instanceof SessionClass !== true)
+			throw 'must pass a session object as first parameter!';
+		
+		var global = session.getGlobalObject();
+		
+		return session.findAccountObjectsFromAddress(bForceRefresh, address, callback);
 	}
 	
 	createBlankAccountObject(session) {

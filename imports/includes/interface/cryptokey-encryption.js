@@ -132,32 +132,89 @@ var Module = class {
 		return encryptedprivatekey;
 	}
 	
-	decryptPrivateKey(session, encryptedprivatekey) {
-		if (!encryptedprivatekey)
-			return null;
-		
+	_findEncryptionCryptoKey(session, encryptedprivatekey) {
 		// find crypto key uuid
 		var keyuuid = encryptedprivatekey.substr(0, encryptedprivatekey.indexOf(':'));
-		var encryptedprivatekey = encryptedprivatekey.substring(encryptedprivatekey.indexOf(':') + 1);
 		
-		if (!keyuuid) {
-			// see if it is a privatekey in clear
-			var account = session.createBlankAccountObject();
-			
-			account.setPrivateKey(encryptedprivatekey);
-			
-			if (account.isPrivateKeyValid())
-				return encryptedprivatekey;
-			
-			throw 'could not decrypt private key';
-		}
+		if (!keyuuid)
+			return;
 		
 		var cryptokey = this.findCryptoKeyEncryptionInstanceFromUUID(session, keyuuid);
 		
 		if (!cryptokey)
 			throw 'could not find crypto key with uuid: ' + keyuuid;
 		
-		return cryptokey.aesDecryptString(encryptedprivatekey);
+		return cryptokey;
+	}
+	
+	decryptPrivateKey(session, encryptedprivatekey) {
+		if (!encryptedprivatekey)
+			return null;
+		
+		// find crypto key
+		var cryptokey = this._findEncryptionCryptoKey(session, encryptedprivatekey);
+		var _encryptedprivatekey;
+		var _plainprivatekey;
+		
+		
+		if (!cryptokey) {
+			// see if it is a privatekey in clear
+			var account = session.createBlankAccountObject();
+			_plainprivatekey = encryptedprivatekey;
+			
+			account.setPrivateKey(_plainprivatekey);
+			
+			if (account.isPrivateKeyValid())
+				return _plainprivatekey;
+			
+			throw 'could not decrypt private key';
+		}
+		else {
+			_encryptedprivatekey = encryptedprivatekey.substring(encryptedprivatekey.indexOf(':') + 1);
+			
+			_plainprivatekey = cryptokey.aesDecryptString(_encryptedprivatekey);
+			
+			return _plainprivatekey;
+		}
+		
+	}
+	
+	decryptKeyJson(session, keyjson) {
+		try {
+			var encryptedprivatekey = (keyjson['encrypted_private_key'] ? keyjson['encrypted_private_key'] : null);
+			var plainprivatekey = this.decryptPrivateKey(session, encryptedprivatekey);
+
+			keyjson['private_key'] = plainprivatekey;
+			
+			// put info concerning cryptokey in origin
+			var origin = keyjson['origin'];
+			
+			if (!origin.encryption)
+				origin.encryption = {};
+			
+			var cryptokey = this._findEncryptionCryptoKey(session, encryptedprivatekey);
+
+			if (cryptokey) {
+				origin.encryption.mode = 'cryptokey';
+				origin.encryption.key_uuid = cryptokey.getKeyUUID();
+				origin.encryption.address = cryptokey.getAddress();
+				origin.encryption.description = cryptokey.getDescription();
+				origin.encryption.origin = cryptokey.getOrigin();
+				
+				var owner = cryptokey.getOwner();
+				
+				if (owner) {
+					origin.encryption.owner_uuid = owner.getUserUUID();
+				}
+			}
+			else {
+				origin.encryption.mode = 'none';
+			}
+		}
+		catch(e) {
+			console.log('could not decrypt private key for address ' + address + ' with keyuuid ' + keyuuid);
+		}
+		
 	}
 	
 	decryptJsonArray(session, jsonarray) {
@@ -192,14 +249,19 @@ var Module = class {
 			// we keep only our entries, based on owneruuid
 			if (owneruuidarray.indexOf(owneruuid) != -1) {
 				var keyuuid = (jsonarray[i]['key_uuid'] ? jsonarray[i]['key_uuid'] : (jsonarray[i]['uuid'] ? jsonarray[i]['uuid'] : null));
+				var uuid = keyuuid;
 				var address = (jsonarray[i]['address'] ? jsonarray[i]['address'] : null);
 				var encryptedprivatekey = (jsonarray[i]['private_key'] ? jsonarray[i]['private_key'] : null);
 				var description = (jsonarray[i]['description'] ? jsonarray[i]['description'] : null);
+				var origin = (jsonarray[i]['origin'] ? jsonarray[i]['origin'] : {});
+				var activated = (jsonarray[i]['activated'] !== null ? jsonarray[i]['activated'] : null);
 				
 				try {
-					var privatekey = this.decryptPrivateKey(session, encryptedprivatekey);
+					var keyjson = {uuid: uuid, key_uuid: keyuuid, owneruuid: owneruuid, address: address, encrypted_private_key: encryptedprivatekey, description: description, origin: origin, activated: activated}
+					
+					var privatekey = this.decryptKeyJson(session, keyjson);
 
-					keysjson.push({key_uuid: keyuuid, address: address, private_key: privatekey, description: description})
+					keysjson.push(keyjson);
 				}
 				catch(e) {
 					console.log('could not decrypt private key for address ' + address + ' with keyuuid ' + keyuuid);
