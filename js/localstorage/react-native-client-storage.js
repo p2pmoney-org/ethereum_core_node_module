@@ -23,13 +23,29 @@ var ReactNativeClientStorage = class {
 		return jsoncontent;
 	}
 	
-	readClientSideJson(session, key, callback) {
-		console.log('ReactNativeClientStorage.readClientSideJson for key: ' + key);
+	readClientSideJson(session, keystring, callback) {
+		console.log('ReactNativeClientStorage.readClientSideJson for key: ' + keystring);
 		
-		var jsonstringpromise = this.AsyncStorage.getItem(key);
+		if (!keystring)
+			return;
+
+		var _keystring = keystring;
+		
+		if (!keystring.startsWith('shared-')) {
+			var useruuid = session.getSessionUserUUID();
+			
+			if (useruuid) {
+				_keystring = useruuid + '-' + keystring;
+			}
+			else {
+				_keystring = 'shared-' + keystring;
+			}
+		}
+		
+		var jsonstringpromise = this.AsyncStorage.getItem(_keystring);
 		
 		jsonstringpromise.then(function(res) {
-			console.log('ReactNativeClientStorage.readClientSideJson value for key: ' + key + ' is ' + res);
+			console.log('ReactNativeClientStorage.readClientSideJson value for key: ' + _keystring + ' is ' + res);
 			
 			if (callback) {
 				if (res)
@@ -43,13 +59,29 @@ var ReactNativeClientStorage = class {
 		return null;
 	}
 	
-	saveClientSideJson(session, key, value, callback) {
-		console.log('ReactNativeClientStorage.saveClientSideJson called for key: ' + key + ' value ' + value);
+	saveClientSideJson(session, keystring, value, callback) {
+		console.log('ReactNativeClientStorage.saveClientSideJson called for key: ' + keystring + ' value ' + value);
 		
-		var savepromise = this.AsyncStorage.setItem(key, value);
+		if (!keystring)
+			return;
+
+		var _keystring = keystring;
+		
+		if (!keystring.startsWith('shared-')) {
+			var useruuid = session.getSessionUserUUID();
+			
+			if (useruuid) {
+				_keystring = useruuid + '-' + keystring;
+			}
+			else {
+				_keystring = 'shared-' + keystring;
+			}
+		}
+		
+		var savepromise = this.AsyncStorage.setItem(_keystring, value);
 		
 		savepromise.then(function(res) {
-			console.log('ReactNativeClientStorage.saveClientSideJson saved value ' + value + ' for key: ' + key );
+			console.log('ReactNativeClientStorage.saveClientSideJson saved value ' + value + ' for key: ' + _keystring );
 			
 			if (callback)
 				callback(null, value);

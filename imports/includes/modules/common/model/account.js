@@ -86,17 +86,6 @@ var AccountMap = class {
 				var bExist = false;
 				
 				for (var i = 0; i < entry.length; i++) {
-					/*var currentstorage = (entry[i].getOrigin() !== null ? entry[i].getOrigin().storage : null);
-					
-					if (accountstorage && (accountstorage == currentstorage)) {
-						bExist = true;
-
-						// replace (only if previous didn't have a private key)
-						if (!entry[i].getPrivateKey()) {
-							entry[i] = account;
-						}
-					}*/
-					
 					var currentuuid = entry[i].getAccountUUID();
 					
 					if (accountuuid == currentuuid) {
@@ -117,26 +106,6 @@ var AccountMap = class {
 			else {
 				// simple account as an entry
 				// look if we have now a collision from different storage or simple replacement
-				/*var currentstorage = (entry.getOrigin() !== null ? entry.getOrigin().storage : null);
-				
-				if (accountstorage && (accountstorage == currentstorage)) {
-					// simple replacement
-
-					// we check that we do not replace an object with a private key
-					// with an object that does not have one
-					if (entry.getPrivateKey()) {
-						if (!account.getPrivateKey()) {
-							console.log('pushing account ' + key + ' with no private key');
-						}
-						else {
-							this.map[key] = account;
-						}
-						
-					}
-					else{
-						this.map[key] = account;
-					}
-				}*/
 				var currentuuid = entry.getAccountUUID();
 				
 				if (accountuuid == currentuuid) {
@@ -190,9 +159,6 @@ var AccountMap = class {
 				var bSpliced = false;
 				
 				for (var i = 0; i < entry.length; i++) {
-					/*var currentstorage = (entry[i].getOrigin() !== null ? entry[i].getOrigin().storage : null);
-					
-					if (accountstorage && (accountstorage == currentstorage)) {*/
 					var currentuuid = entry[i].getAccountUUID();
 					
 					if (accountuuid == currentuuid) {
@@ -208,10 +174,7 @@ var AccountMap = class {
 					this.map[key] = newentry;
 			}
 			else {
-				/*var currentstorage = (entry.getOrigin() !== null ? entry.getOrigin().storage : null);
-				
-				if (accountstorage == currentstorage)*/
-				var currentuuid = entry[i].getAccountUUID();
+				var currentuuid = entry.getAccountUUID();
 				
 				if (accountuuid == currentuuid)
 				delete this.map[key];

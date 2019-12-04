@@ -29,9 +29,23 @@ var NodeClientStorage = class {
 		return jsoncontent;
 	}
 	
+	_getFullDirPath(subdir) {
+		var storagedir = this.storage_dir;
+
+		if (subdir) {
+			var _noderequire = require; // to avoid problems when react-native processes files
+			var path = _noderequire('path');
+			
+			storagedir = path.join(this.storage_dir, subdir);
+
+		}
+
+		return storagedir;
+	}
+	
 	_getSessionDir(session) {
 		var storagedir = this.storage_dir;
-		var userdir ='anonymous';
+		var userdir ='shared';
 		
 		if (session.getSessionUserObject()) {
 			var useruuid = session.getSessionUserObject().getUserUUID();
@@ -39,24 +53,27 @@ var NodeClientStorage = class {
 			if (useruuid)
 				userdir = useruuid;
 		}
-			
-		var _noderequire = require; // to avoid problems when react-native processes files
-		var path = _noderequire('path');
 		
-		storagedir = path.join(this.storage_dir, userdir);
-
+		storagedir = this._getFullDirPath(userdir);
+			
 		return storagedir;
 	}
 	
-	readClientSideJson(session, key, callback) {
-		console.log('NodeClientStorage.readClientSideJson for key: ' + key);
+	readClientSideJson(session, keystring, callback) {
+		console.log('NodeClientStorage.readClientSideJson for key: ' + keystring);
 		
 		var _noderequire = require; // to avoid problems when react-native processes files
 		var fs = _noderequire('fs');
 		var path = _noderequire('path');
 
-		var storagedir = this._getSessionDir(session);
-		var jsonFileName = key + ".json";
+		if (keystring.startsWith('shared-')) {
+			var storagedir = this._getFullDirPath('shared');
+			var jsonFileName = keystring.substring(7) + ".json";
+		}
+		else {
+			var storagedir = this._getSessionDir(session);
+			var jsonFileName = keystring + ".json";
+		}
 
 		var jsonPath;
 		var jsonFile;
@@ -84,12 +101,12 @@ var NodeClientStorage = class {
 		return jsoncontent;
 	}
 	
-	saveClientSideJson(session, key, value, callback) {
-		console.log('NodeClientStorage.saveClientSideJson called for key: ' + key + ' value ' + value);
+	saveClientSideJson(session, keystring, value, callback) {
+		console.log('NodeClientStorage.saveClientSideJson called for key: ' + keystring + ' value ' + value);
 		
 		if (!value) {
 			if (callback)
-				callback('value passed for key ' + key + ' is null', false);
+				callback('value passed for key ' + keystring + ' is null', false);
 		}
 		
 		var bSuccess = false;
@@ -100,8 +117,15 @@ var NodeClientStorage = class {
 		var fs = _noderequire('fs');
 		var path = _noderequire('path');
 
-		var storagedir = this._getSessionDir(session);
-		var jsonFileName = key + ".json";
+		if (keystring.startsWith('shared-')) {
+			var storagedir = this._getFullDirPath('shared');
+			var jsonFileName = keystring.substring(7) + ".json";
+		}
+		else {
+			var storagedir = this._getSessionDir(session);
+			var jsonFileName = keystring + ".json";
+		}
+
 		
 		var jsonPath;
 		var jsonFile;

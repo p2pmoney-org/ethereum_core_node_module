@@ -19,24 +19,60 @@ var LocalVault = class {
 		
 	}
 	
+	getName() {
+		return this.vaultname;
+	}
+	
+	getType() {
+		return this.type;
+	}
+	
 	getCryptoKeyObject() {
 		return this.cryptokey;
 	}
 	
+	_isEmpty(obj) {
+		if (!obj)
+			return true;
+		
+	    for(var key in obj) {
+	        if(obj.hasOwnProperty(key))
+	            return false;
+	    }
+	    return true;
+	}
+	
 	_read(keys, callback) {
-		var session =this.session;
+		var session = this.session;
 		var localStorage = session.getLocalStorageObject();
 		var clientAccess = session.getClientStorageAccessInstance();
 		
 		switch (this.type) {
 			case LocalVault.CLIENT_VAULT:
-				clientAccess.readUserJson(keys, callback);
+				var _keys = ['shared'].concat(keys); // look in 'shared' branch
+				clientAccess.readUserJson(_keys, callback);
 				break;
 			case LocalVault.LOCAL_VAULT:
-				localStorage.readLocalJson(keys, true, callback);
+				localStorage.readLocalJson(keys, true, (err, res) => {
+					// we must check if calls does not return an empty object
+					// (which can be the case when localStorage is overloaded)
+					if (!err) {
+						if (callback) {
+							if (this._isEmpty(res))
+								callback('empty object', null);
+							else 
+								callback(null, res);
+						}
+					}
+					else {
+						if (callback)
+							callback(err, null);
+					}
+				});
 				break;
 			default:
-				clientAccess.readUserJson(keys, callback);
+				if (callback)
+					callback('wrong vault type', null);
 				break;
 		}
 		
@@ -49,13 +85,15 @@ var LocalVault = class {
 		
 		switch (this.type) {
 			case LocalVault.CLIENT_VAULT:
-				clientAccess.saveUserJson(keys, json, callback);
+				var _keys = ['shared'].concat(keys); // save in 'shared' branch
+				clientAccess.saveUserJson(_keys, json, callback);
 				break;
 			case LocalVault.LOCAL_VAULT:
 				localStorage.saveLocalJson(keys, json, callback);
 				break;
 			default:
-				clientAccess.saveUserJson(keys, json, callback);
+				if (callback)
+					callback('wrong vault type', null);
 				break;
 		}
 	}
@@ -82,6 +120,7 @@ var LocalVault = class {
 			
 			if (privatekey) {
 				cryptokey.setKeyUUID(key_uuid);
+				cryptokey.setDescription(vaultname);
 				cryptokey.setPrivateKey(privatekey);
 				
 				this.cryptokey = cryptokey;
@@ -317,8 +356,9 @@ var LocalVault = class {
 				if (keystorestring) {
 					var filename = cryptokeyencryptioninstance.getPrivateKeyStoreFileName();
 					var key_uuid = cryptokey.getKeyUUID();
+					var creatoruuid = session.getSessionUserUUID();
 					
-					var json = {key_uuid: key_uuid, filename: filename, content: keystorestring};
+					var json = {key_uuid: key_uuid, creatoruuid: creatoruuid, filename: filename, content: keystorestring};
 					
 					vault._save(keys, json, function(err, res) {
 						if (callback)

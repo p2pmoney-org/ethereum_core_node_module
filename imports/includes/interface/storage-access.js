@@ -114,7 +114,8 @@ var Module = class {
 		// if default not initialized yet
 		if (typeof localStorage !== 'undefined') {
 			// we are in the browser
-			this.localStorage = localStorage;
+			//this.localStorage = localStorage;
+			this.localStorage = new BrowserClientStorage();
 		}
 		else {
 			if ((typeof window !== 'undefined') && (typeof window.simplestore.localStorage !== 'undefined')) {
@@ -150,6 +151,7 @@ var Module = class {
 			}
 			else {
 				// browser localstorage
+				console.log('WARNING: obsolete, should not appear');
 				jsonstring = localStorage.getItem(keystring);
 				
 				json = (jsonstring ? JSON.parse(jsonstring) : null);
@@ -182,11 +184,15 @@ var Module = class {
 			if (localStorage.saveClientSideJson) {
 				localStorage.saveClientSideJson(session, keystring, jsonstring, callback); // nodejs or react-native encapsulation
 			}
-			else
-				localStorage.setItem(keystring, jsonstring); // browser local storage
-			
+			else {
+				// browser local storage
+				console.log('WARNING: obsolete, should not appear');
+				
+				localStorage.setItem(keystring, jsonstring); 
+				
 				if (callback)
 					callback(null, jsonstring);
+			}
 		}
 		else {
 			if (callback)
@@ -213,6 +219,78 @@ var Module = class {
 
 	
 }
+
+var BrowserClientStorage = class {
+	constructor() {
+		this.browserLocalStorage = localStorage;
+	}
+	
+	loadClientSideJsonArtifact(session, jsonfile, callback) {
+		console.log('BrowserClientStorage.loadClientSideJsonArtifact called for: ' + jsonfile);
+		
+		var loadpromise = $.getJSON(jsonfile, function(data) {
+			console.log('contract json file read ');
+
+			if (callback)
+				callback(data);
+
+			return data;
+		});
+		
+		return loadpromise;
+	}
+	
+	readClientSideJson(session, keystring, callback) {
+		console.log('BrowserClientStorage.readClientSideJson for key: ' + keystring);
+		
+		if (!keystring)
+			return;
+		
+		var _keystring = keystring;
+		
+		if (!keystring.startsWith('shared-')) {
+			var useruuid = session.getSessionUserUUID();
+			
+			if (useruuid) {
+				_keystring = useruuid + '-' + keystring;
+			}
+			else {
+				_keystring = 'shared-' + keystring;
+			}
+		}
+		
+		var jsonstring = this.browserLocalStorage.getItem(_keystring);
+		
+		if (callback)
+			callback((jsonstring ? null : 'no result found'), jsonstring);
+	}
+	
+	saveClientSideJson(session, keystring, jsonstring, callback) {
+		console.log('BrowserClientStorage.saveClientSideJson called for key: ' + keystring + ' value ' + jsonstring);
+		
+		if (!keystring)
+			return;
+
+		var _keystring = keystring;
+		
+		if (!keystring.startsWith('shared-')) {
+			var useruuid = session.getSessionUserUUID();
+			
+			if (useruuid) {
+				_keystring = useruuid + '-' + keystring;
+			}
+			else {
+				_keystring = 'shared-' + keystring;
+			}
+		}
+		
+		this.browserLocalStorage.setItem(_keystring, jsonstring); 
+		
+		if (callback)
+			callback(null, jsonstring);
+	}
+}
+
 
 class StorageAccess {
 	constructor(session) {
@@ -257,7 +335,7 @@ class StorageAccess {
 	// user
 	readUserJson(keys, callback) {
 		var self = this;
-
+		
 		var promise = new Promise(function (resolve, reject) {
 			// client side storage only for dapp
 			var json = self.readClientSideJson(keys, function(err, res) {
@@ -289,7 +367,8 @@ class StorageAccess {
 	
 	saveUserJson(keys, json, callback) {
 		var self = this;
-
+		var session = this.session;
+		
 		var promise = new Promise(function (resolve, reject) {
 			// client side storage only for dapp
 			self.saveClientSideJson(keys, json, function(err, res) {
@@ -328,7 +407,7 @@ class StorageAccess {
 					var keysjson = cryptoencryptionmodule.decryptJsonArray(session, jsonarray);
 					
 					// add the origin of the keys
-					var origin = {storage: 'local'};
+					var origin = {storage: 'client'};
 					for (var i = 0; i < keysjson.length; i++) {
 						var key = keysjson[i];
 						

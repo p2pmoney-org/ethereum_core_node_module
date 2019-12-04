@@ -548,6 +548,11 @@ var Session = class {
 		return this.user;
 	}
 	
+	getSessionUserUUID() {
+		if (this.user)
+		return this.user.getUserUUID();
+	}
+	
 	getSessionUserIdentifier() {
 		if (this.user)
 			return this.user.getUserName();

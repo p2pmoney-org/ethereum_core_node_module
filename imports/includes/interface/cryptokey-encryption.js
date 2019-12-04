@@ -133,6 +133,9 @@ var Module = class {
 	}
 	
 	_findEncryptionCryptoKey(session, encryptedprivatekey) {
+		if (!encryptedprivatekey)
+			return null;
+		
 		// find crypto key uuid
 		var keyuuid = encryptedprivatekey.substr(0, encryptedprivatekey.indexOf(':'));
 		
@@ -151,35 +154,44 @@ var Module = class {
 		if (!encryptedprivatekey)
 			return null;
 		
-		// find crypto key
-		var cryptokey = this._findEncryptionCryptoKey(session, encryptedprivatekey);
-		var _encryptedprivatekey;
-		var _plainprivatekey;
-		
-		
-		if (!cryptokey) {
-			// see if it is a privatekey in clear
-			var account = session.createBlankAccountObject();
-			_plainprivatekey = encryptedprivatekey;
+		try {
+			// find crypto key
+			var cryptokey = this._findEncryptionCryptoKey(session, encryptedprivatekey);
+			var _encryptedprivatekey;
+			var _plainprivatekey;
 			
-			account.setPrivateKey(_plainprivatekey);
 			
-			if (account.isPrivateKeyValid())
+			if (!cryptokey) {
+				// see if it is a privatekey in clear
+				var account = session.createBlankAccountObject();
+				_plainprivatekey = encryptedprivatekey;
+				
+				account.setPrivateKey(_plainprivatekey);
+				
+				if (account.isPrivateKeyValid())
+					return _plainprivatekey;
+				
+				throw 'could not decrypt private key';
+			}
+			else {
+				_encryptedprivatekey = encryptedprivatekey.substring(encryptedprivatekey.indexOf(':') + 1);
+				
+				_plainprivatekey = cryptokey.aesDecryptString(_encryptedprivatekey);
+				
 				return _plainprivatekey;
-			
-			throw 'could not decrypt private key';
+			}
 		}
-		else {
-			_encryptedprivatekey = encryptedprivatekey.substring(encryptedprivatekey.indexOf(':') + 1);
-			
-			_plainprivatekey = cryptokey.aesDecryptString(_encryptedprivatekey);
-			
-			return _plainprivatekey;
+		catch(e) {
+			console.log('exception in decryptPrivateKey: ' + e);
 		}
+		
 		
 	}
 	
 	decryptKeyJson(session, keyjson) {
+		if (!keyjson)
+			return;
+		
 		try {
 			var encryptedprivatekey = (keyjson['encrypted_private_key'] ? keyjson['encrypted_private_key'] : null);
 			var plainprivatekey = this.decryptPrivateKey(session, encryptedprivatekey);
@@ -212,7 +224,7 @@ var Module = class {
 			}
 		}
 		catch(e) {
-			console.log('could not decrypt private key for address ' + address + ' with keyuuid ' + keyuuid);
+			console.log('exception in decryptKeyJson: ' + e);
 		}
 		
 	}
