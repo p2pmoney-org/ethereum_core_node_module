@@ -15,6 +15,8 @@ var User = class {
 
 		this.accountmap = new commonmodule.AccountMap();
 		this.cryptokeymap = new commonmodule.CryptoKeyMap();
+		
+		this.CryptoKey = commonmodule.CryptoKey;
 
 		this.getClass = function() { return this.constructor.getClass()};
 	}
@@ -49,6 +51,9 @@ var User = class {
 	}
 	
 	addCryptoKeyObject(cryptokey) {
+		if (!cryptokey || !(cryptokey instanceof this.CryptoKey))
+			return;
+		
 		cryptokey.setOwner(this);
 
 		this.cryptokeymap.pushCryptoKey(cryptokey);

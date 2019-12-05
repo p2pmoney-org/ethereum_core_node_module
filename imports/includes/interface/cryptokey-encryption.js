@@ -94,7 +94,14 @@ var Module = class {
 	}
 	
 	pickCryptoKeyEncryptionInstance(session) {
-		var cryptokeys = session.getSessionCryptoKeyObjects();
+		if (!session)
+			return;
+		
+		// if we are not anonymous, we pick among user's cryptokeys
+		// to avoid picking vaults' keys that are not necessarily always open
+		var user = session.getSessionUserObject();
+		
+		var cryptokeys = (user ? user.getCryptoKeyObjects() : session.getSessionCryptoKeyObjects());
 		var numberofcryptokeys = cryptokeys.length;
 		
 		if (numberofcryptokeys < 1)
@@ -123,6 +130,9 @@ var Module = class {
 	encryptPrivateKey(privatekey, cryptokey) {
 		if (!privatekey)
 			return null;
+		
+		if (!cryptokey)
+			return privatekey;
 		
 		var cryptedprivatekey = cryptokey.aesEncryptString(privatekey);
 		
