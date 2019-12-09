@@ -366,7 +366,7 @@ var Module = class {
 }
 
 var ArtifactProxy = class {
-	constructor(artifactuuid, artifactpath, contractName, abi, bytecode) {
+	constructor(artifactuuid, contractName, artifactpath, abi, bytecode) {
 		this.artifactuuid = artifactuuid;
 		this.artifactpath = artifactpath;
 		this.contractName = contractName;
@@ -405,6 +405,10 @@ var ContractProxy = class {
 		return this.contractuuid;
 	}
 	
+	getArtifact() {
+		return this.artifact;
+	}
+	
 	getAbi() {
 		return (this.artifact['abi'] ? this.artifact['abi'] : null);
 	}
@@ -437,6 +441,10 @@ var ContractInstanceProxy = class {
 	
 	getAbi() {
 		return this.contract.getAbi();
+	}
+	
+	getContract() {
+		return this.contract;
 	}
 	
 	getInstance() {
@@ -2389,7 +2397,7 @@ class EthereumNodeAccess {
 	
 
 	//
-	// Truffle
+	// Truffle (obsolete, should use directly web3_ methods)
 	//
 	_getTruffleContractClass() {
 		if (this.web3_version == "1.0.x")
