@@ -27,6 +27,10 @@ var LocalVault = class {
 		return this.type;
 	}
 	
+	_getVaultKey() {
+		return this.vaultname + '-type' + this.type;
+	}
+	
 	getCryptoKeyObject() {
 		return this.cryptokey;
 	}

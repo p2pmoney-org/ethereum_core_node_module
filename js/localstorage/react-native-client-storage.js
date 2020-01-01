@@ -12,6 +12,28 @@ var ReactNativeClientStorage = class {
 		this.ethereum_core = require('../../ethereum_core.js').getObject();
 	}
 	
+	// standard local storage
+	setItem(key, value) {
+		return this.AsyncStorage.setItem(key, value);
+	}
+	
+	getItem(key) {
+		return this.AsyncStorage.getItem(key);
+	}
+	
+	removeItem(key) {
+		return this.AsyncStorage.removeItem(key);
+	}
+	
+	key(index) {
+		return this.AsyncStorage.key(index);
+	}
+	
+	clear() {
+		return this.AsyncStorage.clear();
+	}
+	
+	// ethereum_core storage access
 	loadClientSideJsonArtifact(session, jsonfile, callback) {
 		console.log('ReactNativeClientStorage.loadClientSideJsonArtifact called for: ' + jsonfile);
 		

@@ -167,7 +167,23 @@ var Module = class {
 		var ethnodemodule = global.getModuleObject('ethnode');
 
 		var _web3providerurl = (web3providerurl ? web3providerurl : ethnodemodule.getWeb3ProviderUrl(session));
-		var _web3Provider = new Web3.providers.HttpProvider(_web3providerurl);
+		
+		var options = {};
+		
+		options.headers = [];
+		
+		var _web3providerobject = ethnodemodule.getWeb3ProviderObject(session, _web3providerurl);
+		
+		var auth_basic = (_web3providerobject ? _web3providerobject.getVariable('auth_basic') : null);
+		if (auth_basic) {
+			var username = auth_basic.username;
+			var password = auth_basic.password;
+			
+			options.headers.push({name: "Authorization", value: "Basic " + btoa(username + ":" + password)});
+			
+		}
+		
+		var _web3Provider = new Web3.providers.HttpProvider(_web3providerurl, options);
 
 		return _web3Provider;
 	}
@@ -943,10 +959,12 @@ class EthereumNodeAccess {
 	web3_setProviderUrl(url, callback) {
 		this.web3instance = null;
 		
-		var Web3 = this.ethereumnodeaccessmodule.getWeb3Class();
+		/*var Web3 = this.ethereumnodeaccessmodule.getWeb3Class();
 		var web3Provider = new Web3.providers.HttpProvider(url);
 		
-		this.web3instance = new Web3(web3Provider);
+		this.web3instance = new Web3(web3Provider);*/
+		
+		this.web3instance = this._getWeb3Instance();
 		
 		this.web3providerurl = url;
 		

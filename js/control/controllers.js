@@ -340,36 +340,36 @@ var ModuleControllers = class {
 	//
 	// vault
 	//
-	openVault(session, vaultname, passphrase, callback) {
+	openVault(session, vaultname, passphrase, type, callback) {
 		var global = this.global;
 		
 		var commonmodule = global.getModuleObject('common');
 		
-		commonmodule.openVault(session, vaultname, passphrase, callback);
+		commonmodule.openVault(session, vaultname, passphrase, type, callback);
 	}
 
-	createVault(session, vaultname, passphrase, callback) {
+	createVault(session, vaultname, passphrase, type, callback) {
 		var global = this.global;
 		
 		var commonmodule = global.getModuleObject('common');
 		
-		commonmodule.createVault(session, vaultname, passphrase, callback);
+		commonmodule.createVault(session, vaultname, passphrase, type, callback);
 	}
 	
-	getFromVault(session, vaultname, key) {
+	getFromVault(session, vaultname, type, key) {
 		var global = this.global;
 		
 		var commonmodule = global.getModuleObject('common');
 		
-		return commonmodule.getFromVault(session, vaultname, key);
+		return commonmodule.getFromVault(session, vaultname, type, key);
 	}
 
-	putInVault(session, vaultname, key, value, callback) {
+	putInVault(session, vaultname, type, key, value, callback) {
 		var global = this.global;
 		
 		var commonmodule = global.getModuleObject('common');
 		
-		commonmodule.putInVault(session, vaultname, key, value, callback);
+		commonmodule.putInVault(session, vaultname, type, key, value, callback);
 	}
 
 	

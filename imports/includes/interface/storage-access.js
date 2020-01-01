@@ -225,6 +225,28 @@ var BrowserClientStorage = class {
 		this.browserLocalStorage = localStorage;
 	}
 	
+	// standard local storage
+	setItem(key, value) {
+		return this.browserLocalStorage.setItem(key, value);
+	}
+	
+	getItem(key) {
+		return this.browserLocalStorage.getItem(key);
+	}
+	
+	removeItem(key) {
+		return this.browserLocalStorage.removeItem(key);
+	}
+	
+	key(index) {
+		return this.browserLocalStorage.key(index);
+	}
+	
+	clear() {
+		return this.browserLocalStorage.clear();
+	}
+	
+	// ethereum_core storage access
 	loadClientSideJsonArtifact(session, jsonfile, callback) {
 		console.log('BrowserClientStorage.loadClientSideJsonArtifact called for: ' + jsonfile);
 		
@@ -374,6 +396,8 @@ class StorageAccess {
 			self.saveClientSideJson(keys, json, function(err, res) {
 				if (err) {
 					console.log('error saving client side json: ' + err);
+					
+					// we DO NOT reject promise, callback probably already called
 				}
 			});
 			

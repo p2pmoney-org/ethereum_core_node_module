@@ -164,6 +164,53 @@ var Module = class {
 	//
 	
 	// web 3
+	getWeb3ProviderObject(session, url) {
+		var _url = (url ? url : this.getWeb3ProviderUrl(session));
+		
+		var key = _url.toLowerCase();
+		
+		// look in session map
+		if (!session.web3providermap)
+			session.web3providermap = Object.create(null); // create alternate providers map if do not exist
+
+		return session.web3providermap[key];
+	}
+	
+	putWeb3ProviderObject(session, web3provider) {
+		var url = web3provider.getWeb3ProviderUrl()
+		var key = url.toLowerCase();
+		
+		session.web3providermap[key] = web3provider;
+	}
+	
+	createWeb3ProviderObject(session, web3providerurl, ethereumnodeaccessinstance) {
+		var web3provider = new this.Web3Provider(session, web3providerurl, ethereumnodeaccessinstance);
+		
+		var global = this.global;
+
+		// call hook to let modify or replace instance
+		var result = []; 
+		var inputparams = [];
+		
+		inputparams.push(this);
+		inputparams.push(session);
+		inputparams.push(web3providerurl);
+		inputparams.push(ethereumnodeaccessinstance);
+		
+		result[0]= web3provider;
+		
+		var ret = global.invokeHooks('createWeb3ProviderObject_hook', result, inputparams);
+		
+		if (ret && result[0]) {
+			web3provider = result[0];
+		}
+		else {
+			web3provider = new this.Web3Provider(session, web3providerurl, ethereumnodeaccessinstance);
+		}
+
+		return web3provider;
+	}
+	
 	getWeb3ProviderUrl(session) {
 		if ((session) && (session.web3providerurl))
 			return session.web3providerurl; // return session's value
@@ -189,13 +236,13 @@ var Module = class {
 				var ethereumnodeaccessinstance = this.getEthereumNodeAccessInstance(session);
 				
 				ethereumnodeaccessinstance.web3_setProviderUrl(url, (err, res) => {
-					var key = url.toLowerCase();
+					var web3provider = this.getWeb3ProviderObject(session, url);
 					
-					if (!session.web3providermap[key]) {
+					if (!web3provider) {
 						// put instance in the map
-						var web3provider = new this.Web3Provider(session, web3providerurl, ethereumnodeaccessinstance);
+						web3provider = this.createWeb3ProviderObject(session, web3providerurl, ethereumnodeaccessinstance);
 						
-						session.web3providermap[key] = web3provider;
+						this.putWeb3ProviderObject(session, web3provider);
 					}
 					
 					callback(null, url);
@@ -274,15 +321,10 @@ var Module = class {
 		if (!web3providerurl)
 		return ethereumnodeaccessmodule.getEthereumNodeAccessInstance(session); // returns default
 		
-		// look in session map
-		if (!session.web3providermap)
-			session.web3providermap = Object.create(null); // create alternate providers map if do not exist
+		var web3provider = this.getWeb3ProviderObject(session, web3providerurl);
 		
-
-		var key = web3providerurl.toLowerCase();
-		
-		if (session.web3providermap[key])
-			return session.web3providermap[key].getEthereumNodeAccessInstance();
+		if (web3provider)
+			return web3provider.getEthereumNodeAccessInstance();
 		
 		// create a ethereum node access with the correct url
 		var ethereumnodeaccessinstance = ethereumnodeaccessmodule.createBlankEthereumNodeAccessInstance(session);
@@ -290,9 +332,9 @@ var Module = class {
 		ethereumnodeaccessinstance.web3_setProviderUrl(web3providerurl);
 		
 		// then create and store the provider
-		var web3provider = new this.Web3Provider(session, web3providerurl, ethereumnodeaccessinstance);
+		var web3provider = this.createWeb3ProviderObject(session, web3providerurl, ethereumnodeaccessinstance);
 		
-		session.web3providermap[key] = web3provider;
+		this.putWeb3ProviderObject(session, web3provider)
 		
 		return web3provider.getEthereumNodeAccessInstance();
 	}

@@ -297,6 +297,9 @@ var LocalStorage = class {
 		if ((entry) && (!bForceRefresh) && (bForceRefresh != true)) {
 			//console.log("readLocalJson json in cache for key " + key.toString() + " is " + JSON.stringify(entry));
 			
+			if (callback)
+				callback(null, entry);
+			
 			return entry;
 		}
 		

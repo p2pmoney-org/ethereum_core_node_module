@@ -121,10 +121,11 @@ var Tests = class {
 			describe('vault:', function() {
 				var vaultname = 'vault' + Date.now();
 				var passphrase = 'password';
+				var vaulttype = 0;
 
 				it('creation', function() {
 			    	return new Promise(function (resolve, reject) {
-			    		corecontrollers.createVault(session, vaultname, passphrase, function(err, vault)  {
+			    		corecontrollers.createVault(session, vaultname, passphrase, vaulttype, function(err, vault)  {
 					    	assert(vault);
 					    	
 						    resolve(true);
@@ -134,7 +135,7 @@ var Tests = class {
 				
 		    	it('opening', function() {
 		    		return new Promise(function (resolve, reject) {
-			    		corecontrollers.openVault(session, vaultname, passphrase, function(err, vault)  {
+			    		corecontrollers.openVault(session, vaultname, passphrase, vaulttype, function(err, vault)  {
 					    	assert(vault && vault.cryptokey);
 							
 					    	resolve(true);
@@ -146,7 +147,7 @@ var Tests = class {
 		    		return new Promise(function (resolve, reject) {
 		    			var key = 'fox-key';
 		    			var value = {text: 'the fox jumps over the lazy dog'};
-			    		corecontrollers.putInVault(session, vaultname, key, value, (err, res) =>  {
+			    		corecontrollers.putInVault(session, vaultname, vaulttype, key, value, (err, res) =>  {
 					    	assert(!err);
 							
 					    	resolve(true);
@@ -157,7 +158,7 @@ var Tests = class {
 		    	it('retrieving', function() {
 		    		return new Promise(function (resolve, reject) {
 		    			var key = 'fox-key';
-			    		var value = corecontrollers.getFromVault(session, vaultname, key);
+			    		var value = corecontrollers.getFromVault(session, vaultname, vaulttype, key);
 				    	assert(value && (value.text == 'the fox jumps over the lazy dog'));
 						
 				    	resolve(true);

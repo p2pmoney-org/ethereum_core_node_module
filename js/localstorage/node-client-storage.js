@@ -18,6 +18,28 @@ var NodeClientStorage = class {
 		this.storage_dir = storage_dir;
 	}
 	
+	// standard local storage
+	setItem(key, value) {
+		throw 'not implemented yet!';
+	}
+	
+	getItem(key) {
+		throw 'not implemented yet!';
+	}
+	
+	removeItem(key) {
+		throw 'not implemented yet!';
+	}
+	
+	key(index) {
+		throw 'not implemented yet!';
+	}
+	
+	clear() {
+		throw 'not implemented yet!';
+	}
+	
+	// ethereum_core storage access
 	loadClientSideJsonArtifact(session, jsonfile, callback) {
 		console.log('NodeClientStorage.loadClientSideJsonArtifact called for: ' + jsonfile);
 		

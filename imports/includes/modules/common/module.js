@@ -3,7 +3,7 @@
 var Module = class {
 	constructor() {
 		this.name = 'common';
-		this.current_version = "0.13.2.2019.12.05";
+		this.current_version = "0.14.0.2020.01.01";
 		
 		this.global = null; // put by global on registration
 		this.isready = false;
@@ -168,18 +168,18 @@ var Module = class {
 	createBlankSessionObject() {
 		console.log('Creating Session Object')
 		
-		// making sure class properties are ok
-		this.Session.Config = this.global.globalscope.simplestore.Config;
+		// making sure class properties for instantiation are ok
+		this.Session.Config = this.global.globalscope.simplestore.Config; // obsolete, no longer needed
 		
 		// libs
-		this.Session.AccountEncryption = this.global.globalscope.simplestore.AccountEncryption;
+		this.Session.AccountEncryption = this.global.globalscope.simplestore.AccountEncryption; // obsolete, no longer needed
 		
 		// model classes
 		this.Session.CryptoKey = this.CryptoKey;
-		this.Session.CryptoKeyMap = this.CryptoKeyMap;
+		this.Session.CryptoKeyMap = this.CryptoKeyMap; // obsolete, no longer needed
 		
 		this.Session.Account = this.Account;
-		this.Session.AccountMap = this.AccountMap;
+		this.Session.AccountMap = this.AccountMap; // obsolete, no longer needed
 		
 
 		// creating object

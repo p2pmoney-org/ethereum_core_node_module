@@ -10,9 +10,11 @@ var Session = class {
 		
 		this.sessionuuid = null;
 		
+		this.xtraconfig = {};
+		
 		this.sessionvar = {};
 		
-		this.contracts = null;
+		//this.contracts = null;
 
 
 		var commonmodule = global.getModuleObject('common');
@@ -74,8 +76,16 @@ var Session = class {
 	
 	// config
 	getXtraConfigValue(key) {
-		var Session = this.getClass();
-		return Session.Config.getXtraValue(key);
+		// if value has been overloaded
+		// at session's level
+		if (this.xtraconfig[key])
+			return this.xtraconfig[key];
+		
+		// or return global xtraconfigvalue
+		var global = this.global;
+		return global.getXtraConfigValue(key);
+		//var Session = this.getClass();
+		//return Session.Config.getXtraValue(key);
 	}
 	
 	// session variable
@@ -573,6 +583,31 @@ var Session = class {
 		return array;
 	}
 	
+	getVault(vaultname) {
+		var vaultmap = this.vaultmap;
+		
+		var array = [];
+		
+		for (var key in vaultmap) {
+		    if (!vaultmap[key]) continue;
+		    
+		    if (vaultmap[key].getName() == vaultname)
+		    	return vaultmap[key];
+		}
+	}
+	
+	putVault(vault) {
+		var LocalVaultClass = (typeof LocalVault !== 'undefined' ? LocalVault : global.getModuleObject('common').LocalVault);
+
+		if (!vault || !(vault instanceof LocalVaultClass))
+			return;
+		
+		var vaultmap = this.vaultmap;
+		var key = vault._getVaultKey();
+		
+		vaultmap[key] = vault;
+	}
+	
 	// session identification
 	isAnonymous() {
 		var oldisanonymous = (this.user == null);
@@ -601,17 +636,9 @@ var Session = class {
 	}
 	
 	disconnectAccount() {
-		//this.identifyingaccountaddress = null;
-		this.user = null;
-		
-		// we clean the cryptokey map
-		this.cryptokeymap.empty();
-		
-		// we clean the account map
-		this.accountmap.empty();
-		
-		// we clean the local storage
-		this.localstorage.empty();
+		// obsolete, use disconnectUser
+		console.log('WARNING: disconnectAccount is obsolete, use disconnectUser');
+		this.disconnectUser();
 	}
 	
 	impersonateAccount(account) {
