@@ -597,6 +597,7 @@ var Session = class {
 	}
 	
 	putVault(vault) {
+		var global = this.global;
 		var LocalVaultClass = (typeof LocalVault !== 'undefined' ? LocalVault : global.getModuleObject('common').LocalVault);
 
 		if (!vault || !(vault instanceof LocalVaultClass))

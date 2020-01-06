@@ -48,15 +48,15 @@ var LocalVault = class {
 	
 	_read(keys, callback) {
 		var session = this.session;
-		var localStorage = session.getLocalStorageObject();
-		var clientAccess = session.getClientStorageAccessInstance();
 		
 		switch (this.type) {
 			case LocalVault.CLIENT_VAULT:
 				var _keys = ['shared'].concat(keys); // look in 'shared' branch
+				var clientAccess = session.getClientStorageAccessInstance();
 				clientAccess.readUserJson(_keys, callback);
 				break;
 			case LocalVault.LOCAL_VAULT:
+				var localStorage = session.getLocalStorageObject();
 				localStorage.readLocalJson(keys, true, (err, res) => {
 					// we must check if calls does not return an empty object
 					// (which can be the case when localStorage is overloaded)
@@ -84,15 +84,15 @@ var LocalVault = class {
 	
 	_save(keys, json, callback) {
 		var session =this.session;
-		var localStorage = session.getLocalStorageObject();
-		var clientAccess = session.getClientStorageAccessInstance();
 		
 		switch (this.type) {
 			case LocalVault.CLIENT_VAULT:
 				var _keys = ['shared'].concat(keys); // save in 'shared' branch
+				var clientAccess = session.getClientStorageAccessInstance();
 				clientAccess.saveUserJson(_keys, json, callback);
 				break;
 			case LocalVault.LOCAL_VAULT:
+				var localStorage = session.getLocalStorageObject();
 				localStorage.saveLocalJson(keys, json, callback);
 				break;
 			default:
@@ -291,7 +291,105 @@ var LocalVault = class {
 		
 		return safename;
 	}
+	
+	static getVaultList(session, type, callback) {
+		
+		var _keys = ['shared', 'common', 'vaults', 'list'];
+		
+		switch (type) {
+			case LocalVault.CLIENT_VAULT:
+				var clientAccess = session.getClientStorageAccessInstance();
+				clientAccess.readUserJson(_keys, callback);
+				break;
+			case LocalVault.LOCAL_VAULT:
+				localStorage.readLocalJson(_keys, true, (err, res) => {
+					// we must check if calls does not return an empty object
+					// (which can be the case when localStorage is overloaded)
+					if (!err) {
+						if (callback) {
+							if (this._isEmpty(res))
+								callback('empty object', null);
+							else 
+								callback(null, res);
+						}
+					}
+					else {
+						if (callback)
+							callback(err, null);
+					}
+				});
+				break;
+			default:
+				if (callback)
+					callback('wrong vault type', null);
+				break;
+		}
+	}
 
+	static saveVaultList(session, type, json, callback) {
+		var _keys = ['shared', 'common', 'vaults', 'list'];
+
+		switch (type) {
+			case LocalVault.CLIENT_VAULT:
+				var clientAccess = session.getClientStorageAccessInstance();
+				clientAccess.saveUserJson(_keys, json, callback);
+				break;
+			case LocalVault.LOCAL_VAULT:
+				var localStorage = session.getLocalStorageObject();
+				localStorage.saveLocalJson(keys, json, callback);
+				break;
+			default:
+				if (callback)
+					callback('wrong vault type', null);
+				break;
+		}
+	}
+	
+	static checkVaultExists(session, vaultname, type, callback) {
+		var vault = new LocalVault(session, vaultname, type);
+		
+		var keys = ['common', 'vaults', vaultname, 'keystore'];
+
+		vault._read(keys, (err, res) => {
+			if (callback)
+				callback(null, (err ? false : true));
+		});
+	}
+	
+	static checkVaultInList(session, vault, callback) {
+		if (!vault)
+			return;
+		
+		var vaultname = vault.getName();
+		var vaulttype = vault.getType();
+		
+		// get list
+		const list = LocalVault.getVaultList(session, vaulttype, (err, res) => {
+			var array = (err ? [] : (res ? res : []));
+				
+			var addToList = true;
+			
+			for (var i = 0; i < array.length; i++) {
+				if (vaultname == array[i].name) {
+					addToList = false;
+				}
+			}
+			
+			if (addToList) {
+				console.log('adding vault ' + vaultname + ' to saved list');
+				var keyuuid = vault.getCryptoKeyObject().getKeyUUID();
+				var entry = {name: vaultname, type: vaulttype, keyuuid: keyuuid};
+				
+				array.push(entry);
+				
+				LocalVault.saveVaultList(session, vaulttype, array, (err, res) => {
+					if (callback)
+						callback(err, res);
+				});
+			}
+		});
+	}
+	
 	static openVault(session, vaultname, passphrase, type, callback) {
 		var safevaultname = LocalVault._getSafeVaultName(session, vaultname, type);
 
@@ -310,6 +408,9 @@ var LocalVault = class {
 		vaultmap[vaultname + '-type' + type] = vault;
 		
 		vault.unlock(passphrase, function(err, res) {
+			if (!err)
+				LocalVault.checkVaultInList(session, vault);
+			
 			if (callback)
 				callback(err, (err ? null : vault));
 		});
@@ -353,6 +454,9 @@ var LocalVault = class {
 				// set crypto key origin
 				cryptokey.setOrigin({storage: 'memory'});
 				
+				// set cryptokey in vault
+				vault.cryptokey = cryptokey;
+				
 				// get keystore string
 				var keystorestring =  cryptokeyencryptioninstance.getPrivateKeyStoreString(passphrase);
 
@@ -365,6 +469,9 @@ var LocalVault = class {
 					var json = {key_uuid: key_uuid, creatoruuid: creatoruuid, filename: filename, content: keystorestring};
 					
 					vault._save(keys, json, function(err, res) {
+						if (!err)
+							LocalVault.checkVaultInList(session, vault);
+						
 						if (callback)
 							callback(err, (err ? null : vault));
 					});

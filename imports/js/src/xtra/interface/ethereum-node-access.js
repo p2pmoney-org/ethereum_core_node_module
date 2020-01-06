@@ -964,9 +964,9 @@ class EthereumNodeAccess {
 		
 		this.web3instance = new Web3(web3Provider);*/
 		
-		this.web3instance = this._getWeb3Instance();
-		
 		this.web3providerurl = url;
+		
+		this.web3instance = this._getWeb3Instance();
 		
 		if (callback)
 			callback(null, this.web3instance);

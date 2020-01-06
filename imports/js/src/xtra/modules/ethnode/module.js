@@ -240,7 +240,7 @@ var Module = class {
 					
 					if (!web3provider) {
 						// put instance in the map
-						web3provider = this.createWeb3ProviderObject(session, web3providerurl, ethereumnodeaccessinstance);
+						web3provider = this.createWeb3ProviderObject(session, url, ethereumnodeaccessinstance);
 						
 						this.putWeb3ProviderObject(session, web3provider);
 					}
