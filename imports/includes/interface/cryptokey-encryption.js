@@ -582,12 +582,12 @@ class CryptoKeyEncryption {
 		
 		var ciphertext = '0x' + keythereum.encrypt(plaintextbuf, key, iv).toString('hex');//, algo);
 		
-		console.log('plaintext input is ' + plaintext);
-		console.log('ciphertext is ' + ciphertext);
+		//console.log('plaintext input is ' + plaintext);
+		//console.log('ciphertext is ' + ciphertext);
 		
 		var decipheredtext = this.aesDecryptString(ciphertext);
 		
-		console.log('deciphered text is ' + decipheredtext);
+		//console.log('deciphered text is ' + decipheredtext);
 		
 		
 		return ciphertext;
@@ -614,7 +614,7 @@ class CryptoKeyEncryption {
 		
 		var plaintext = keythereum.decrypt(cyphertextbuf, key, iv).toString('utf8');
 		
-		console.log('plaintext is ' + plaintext);
+		//console.log('plaintext is ' + plaintext);
 		
 		return plaintext;
 	}

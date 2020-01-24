@@ -335,6 +335,9 @@ var LocalStorage = class {
 			})
 			.catch(function (err) {
 			     console.log("LocalStorage.readLocalJson promise rejected: " + err);
+			     
+			     if (callback)
+			    	 callback("LocalStorage.readLocalJson promise rejected: " + err, null);
 			});
 		}
 		
@@ -373,6 +376,9 @@ var LocalStorage = class {
 			})
 			.catch(function (err) {
 			     console.log("LocalStorage.saveLocalJson promise rejected: " + err);
+			     
+			     if (callback)
+			    	 callback("LocalStorage.saveLocalJson promise rejected: " + err, null);
 			});
 		}
 

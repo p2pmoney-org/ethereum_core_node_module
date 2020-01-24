@@ -750,16 +750,21 @@ var Module = class {
 	}
 	
 	// ether
-	static getWeiFromEther(numofether) {
+	getWeiFromEther(numofether) {
 		var wei = numofether * ETHER_TO_WEI;
 
 		return wei;
 	}
 	
-	getEtherFromwei(numofwei) {
+	getEtherFromWei(numofwei) {
 		var ether = numofwei / ETHER_TO_WEI;
 
 		return ether;
+	}
+	
+	getEtherFromwei(numofwei) {
+		// obsolete, because of typo
+		return this.getEtherFromWei(numofwei);
 	}
 }
 
