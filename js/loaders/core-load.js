@@ -55,10 +55,14 @@ window.simplestore.ethereumjs = ethereumjs;
 // keythereum
 //
 rootscriptloader.push_import(cryptomodulescriptloader, '../../imports/includes/lib/keythereum.min-1.0.2.js');
-import '../../imports/includes/lib/keythereum.min-1.0.2.js';
+//import '../../imports/includes/lib/keythereum.min-1.0.2.js';
 
-//duplicate window reference to window.simplestore
+//duplicate window reference to window.simplestore after import
 window.simplestore.keythereum = window.keythereum;
+
+// when using keythereum node module
+var keythereum = require('keythereum');
+window.simplestore.keythereum = keythereum;
 
 //
 // bit core

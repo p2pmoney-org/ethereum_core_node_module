@@ -27,6 +27,8 @@ class Global {
 		
 		// hooks
 		this.hook_arrays = [];
+		
+		this.eventlisteners = Object.create(null);
 
 		// context
 		this.globalscope = null;
@@ -626,9 +628,9 @@ class Global {
 			throw 'invokeHooks did not receive an array as result parameter for hookentry: ' + hookentry;
 
 		var hookarray = this.getHookArray(hookentry);
-		var ret_array = {};
+		result.ret_array = [];
 
-		for (var i=0; i < hookarray.length; i++) {
+		for (var i = 0; i < hookarray.length; i++) {
 			var entry = hookarray[i];
 			var func = entry['function'];
 			var modulename = entry['modulename'];
@@ -637,7 +639,8 @@ class Global {
 			if (module) {
 				var ret = func.call(module, result, inputparams);
 				
-				ret_array[modulename] = ret;
+				result.ret_array[modulename] = ret;
+				result.ret_array.push(ret);
 				
 				if (result[result.length-1] && (result[result.length-1].module == modulename) && (result[result.length-1].stop === true))
 					break;
@@ -647,6 +650,133 @@ class Global {
 		
 		return true;
 	}
+	
+	
+	invokeAsyncHooks(hookentry, result, inputparams) {
+		
+		var hookarray = this.getHookArray(hookentry);
+		result.ret_array = [];
+		
+		
+		// much easier with async/await
+		/*for (var i = 0; i < hookarray.length; i++) {
+			var entry = hookarray[i];
+			var func = entry['function'];
+			var modulename = entry['modulename'];
+			var module = global.getModuleObject(modulename);
+			
+			if (module) {
+				var ret = await func.call(module, result, inputparams)
+				.catch(err =>{
+				});
+				
+				result.ret_array[modulename] = ret;
+				result.ret_array.push(ret);
+				
+				if (result[result.length-1] && (result[result.length-1].module == modulename) && (result[result.length-1].stop === true))
+					break;
+			}
+			
+		}
+				
+		return true;*/
+		
+		
+		return hookarray.reduce( (previousPromise, entry) => {
+			var modulename;
+			
+			return previousPromise.then(() => {
+				var func = entry['function'];
+				modulename = entry['modulename'];
+				var module = this.getModuleObject(modulename);
+				
+				if (module) {
+					return func.call(module, result, inputparams);
+				}
+			})
+			.then((ret) => {
+				if (ret) {
+					result.ret_array[modulename] = ret;
+					result.ret_array.push(ret);
+					
+					if (result[result.length-1] && (result[result.length-1].module == modulename) && (result[result.length-1].stop === true))
+						throw 'break';
+				}
+				return ret;
+			});
+		}, Promise.resolve())
+		.then(()=>{
+			return true;
+		})
+		.catch(err => {
+			if (err != 'break')
+				console.log('error while processing invokeAsyncHooks for ' + hookentry + ': ' + err);
+		});
+		
+	}
+	
+	//
+	// Events
+	//
+	registerEventListener(eventname, listeneruuid, listener) {
+		if (!eventname)
+			return;
+		
+		if ((eventname in this.eventlisteners) === false) {
+			this.eventlisteners[eventname] = [];
+		}
+		
+		var entry = {uuid: listeneruuid, listener: listener};
+
+		this.eventlisteners[eventname].push(entry);
+	}
+
+	unregisterEventListener(eventname, listeneruuid) {
+		if (!eventname)
+			return;
+		
+		if ((eventname in this.eventlisteners) === false) {
+			this.eventlisteners[eventname] = [];
+		}
+		
+		var array = []
+		
+		for (var i = 0; i < this.eventlisteners[eventname].length; i++) {
+			var entry = this.eventlisteners[eventname][i];
+			
+			if (!entry)
+				continue;
+			
+			var uuid = entry.uuid;
+
+			if (listeneruuid == uuid)
+				continue;
+			
+			array.push(entry);
+		}
+		
+		this.eventlisteners[eventname] = array;
+	}
+
+	signalEvent(eventname) {
+		console.log('signalEvent called for event ' + eventname);
+		
+		if ((eventname in this.eventlisteners) === false)
+			return;
+		
+		for (var i = 0; i < this.eventlisteners[eventname].length; i++) {
+			var entry = this.eventlisteners[eventname][i];
+			
+			if (!entry)
+				continue;
+			
+			var listener = entry.listener;
+			
+			listener(eventname);
+		}
+	}
+	
+
 	
 	
 	// i18n

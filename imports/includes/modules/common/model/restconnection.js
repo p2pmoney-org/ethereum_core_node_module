@@ -17,7 +17,7 @@ var RestConnection = class {
 	    var rest_server_url = this.rest_server_url;
 	    var rest_server_api_path = this.rest_server_api_path;
 		
-	    return rest_server_url + rest_server_api_path ;
+	    return rest_server_url + (rest_server_api_path ? rest_server_api_path : '');
 	}
 	
 	addToHeader(keyvalue) {

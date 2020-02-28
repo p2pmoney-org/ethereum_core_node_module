@@ -120,26 +120,35 @@ var LocalVault = class {
 			var keystorestring = (res ? res.content : null);
 			
 			// decrypt crypto key
-			var privatekey =  cryptokeyencryptioninstance.readPrivateKeyFromStoreString(keystorestring, passphrase);
-			
-			if (privatekey) {
-				cryptokey.setKeyUUID(key_uuid);
-				cryptokey.setDescription(vaultname);
-				cryptokey.setPrivateKey(privatekey);
-				
-				this.cryptokey = cryptokey;
-				
-				// then read value
-				this.readValues((err, res) =>  {
-					if (callback)
-						callback(null, this);
+			try {
+				cryptokeyencryptioninstance.readPrivateKeyFromStoreString(keystorestring, passphrase, (err, privatekey) => {
+					if (privatekey) {
+						cryptokey.setKeyUUID(key_uuid);
+						cryptokey.setDescription(vaultname);
+						cryptokey.setPrivateKey(privatekey);
+						
+						this.cryptokey = cryptokey;
+						
+						// then read value
+						this.readValues((err, res) =>  {
+							if (callback)
+								callback(null, this);
+						});
+						
+					}
+					else {
+						if (callback)
+							callback('no key found', null);
+					}
 				});
-				
 			}
-			else {
+			catch(e) {
 				if (callback)
-					callback('no key found', null);
+					callback('could not unlock key store', null);
+				
+				return;
 			}
+			
 			
 		});
 		
@@ -216,9 +225,9 @@ var LocalVault = class {
 				this.valuemap = Object.create(null);
 				
 				for (var key in json) {
-				    if (json.hasOwnProperty(key)) {
-				        this.valuemap[key] = json[key];
-				    }
+					if (json.hasOwnProperty(key)) {
+						this.valuemap[key] = json[key];
+					}
 				}
 				
 			}
@@ -302,6 +311,7 @@ var LocalVault = class {
 				clientAccess.readUserJson(_keys, callback);
 				break;
 			case LocalVault.LOCAL_VAULT:
+				var localStorage = session.getLocalStorageObject();
 				localStorage.readLocalJson(_keys, true, (err, res) => {
 					// we must check if calls does not return an empty object
 					// (which can be the case when localStorage is overloaded)
@@ -448,8 +458,19 @@ var LocalVault = class {
 				
 				var cryptokeyencryptioninstance = session.getCryptoKeyEncryptionInstance(cryptokey);
 
-				var privkey = cryptokeyencryptioninstance.generatePrivateKey();
-				cryptokey.setPrivateKey(privkey);
+				try {
+					var privkey = cryptokeyencryptioninstance.generatePrivateKey();
+					cryptokey.setPrivateKey(privkey);
+				}
+				catch(e) {
+					var error = 'exception while generating private key: ' + e;
+					console.log(error);
+					
+					if (callback)
+						callback(error, null);
+					
+					return;
+				}
 				
 				// set crypto key origin
 				cryptokey.setOrigin({storage: 'memory'});
@@ -457,30 +478,43 @@ var LocalVault = class {
 				// set cryptokey in vault
 				vault.cryptokey = cryptokey;
 				
-				// get keystore string
-				var keystorestring =  cryptokeyencryptioninstance.getPrivateKeyStoreString(passphrase);
-
-				// save keystore string
-				if (keystorestring) {
-					var filename = cryptokeyencryptioninstance.getPrivateKeyStoreFileName();
-					var key_uuid = cryptokey.getKeyUUID();
-					var creatoruuid = session.getSessionUserUUID();
-					
-					var json = {key_uuid: key_uuid, creatoruuid: creatoruuid, filename: filename, content: keystorestring};
-					
-					vault._save(keys, json, function(err, res) {
-						if (!err)
-							LocalVault.checkVaultInList(session, vault);
-						
-						if (callback)
-							callback(err, (err ? null : vault));
+				try {
+					// get keystore string
+					//var keystorestring = cryptokeyencryptioninstance.getPrivateKeyStoreString(passphrase);
+					cryptokeyencryptioninstance.getPrivateKeyStoreString(passphrase, (err, keystorestring) => {
+						// save keystore string
+						if (keystorestring) {
+							var filename = cryptokeyencryptioninstance.getPrivateKeyStoreFileName();
+							var key_uuid = cryptokey.getKeyUUID();
+							var creatoruuid = session.getSessionUserUUID();
+							
+							var json = {key_uuid: key_uuid, creatoruuid: creatoruuid, filename: filename, content: keystorestring};
+							
+							vault._save(keys, json, function(err, res) {
+								if (!err)
+									LocalVault.checkVaultInList(session, vault);
+								
+								if (callback)
+									callback(err, (err ? null : vault));
+							});
+							
+						}
+						else {
+							if (callback)
+								callback('can not create vault', null);
+						}
 					});
+				}
+				catch(e) {
+					var error = 'exception while generating keystore string: ' + e;
+					console.log(error);
 					
-				}
-				else {
 					if (callback)
-						callback('can not create vault', null);
+						callback(error, null);
+					
+					return;
 				}
+
 			}
 		});
 		

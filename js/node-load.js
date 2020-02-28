@@ -119,7 +119,8 @@ class NodeLoad {
 			// set low-level local storage
 			var ClientStorage = require('./localstorage/node-client-storage.js')
 
-			_globalscope.simplestore.localStorage = new ClientStorage();
+			_globalscope.simplestore.clientStorage = new ClientStorage();
+			_globalscope.simplestore.localStorage = new ClientStorage(); // obsolete
 
 		});
 

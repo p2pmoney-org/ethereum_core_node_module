@@ -83,7 +83,8 @@ class ReactNativeLoad {
 				// set low-level local storage
 				var ClientStorage = require('./localstorage/react-native-client-storage.js')
 
-				_globalscope.simplestore.localStorage = new ClientStorage();
+				_globalscope.simplestore.clientStorage = new ClientStorage();
+				_globalscope.simplestore.localStorage = new ClientStorage(); // obsolete
 			});
 				
 			rootscriptloader.registerEventListener('on_core_load_end', function(eventname) {
@@ -117,11 +118,21 @@ class ReactNativeLoad {
 			var global = _globalscope.simplestore.Global.getGlobalObject();
 			
 			// libs
-			require('./loaders/libs-load.js');
+			try {
+				require('./loaders/libs-load.js');
+			}
+			catch(e) {
+				console.log('exception in ReactNativeLoad.init while loading libs-load.js: ' + e);
+			}
 			
 			// ethereum
-			require('./loaders/ethnode-load.js');
-			require('./loaders/ethchainreader-load.js');
+			try {
+				require('./loaders/ethnode-load.js');
+				require('./loaders/ethchainreader-load.js');
+			}
+			catch(e) {
+				console.log('exception in ReactNativeLoad.init while loading ethnode-load.js & ethchainreader-load.js: ' + e);
+			}
 			
 			
 			//  finalize intialization

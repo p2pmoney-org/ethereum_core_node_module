@@ -437,55 +437,94 @@ class CryptoKeyEncryption {
 		return wallet.getV3Filename();
 	}
 	
-	getPrivateKeyStoreString(passphrase) {
+	getPrivateKeyStoreString(passphrase, callback) {
 		var keythereum = this.getKeythereumClass();
 		var ethereumjs = this.getEthereumJsClass();
 
 		var cryptokey = this.cryptokey;
 		var _privatekey = cryptokey.private_key;
 		
-		/*
-		
-		 const wallet = ethereumjs.Wallet.fromPrivateKey(ethereumjs.Util.toBuffer(_privatekey));
-		
-		const address = wallet.getAddressString();
-		const keystoreFilename = wallet.getV3Filename();
-		const keystore = wallet.toV3(passphrase);
-		const keystorestring = wallet.toV3String(passphrase);*/
 		
 		// store key creation
+		var keystorestring;
 		
-		// optional private key and initialization vector sizes in bytes
-		// (if params is not passed to create, keythereum.constants is used by default)
-		var params = { keyBytes: 32, ivBytes: 16 };
+		try {
+			// optional private key and initialization vector sizes in bytes
+			// (if params is not passed to create, keythereum.constants is used by default)
+			var params = { keyBytes: 32, ivBytes: 16 };
+			
+			// call synchronous
+			var dk = keythereum.create(params);
 
-		// synchronous
-		var dk = keythereum.create(params);
+			dk.privateKey = ethereumjs.Util.toBuffer(_privatekey);
+			
+			// key export
+			var kdf = "pbkdf2"; // or "scrypt" to use the scrypt kdf
+			
+			// Note: if options is unspecified, the values in keythereum.constants are used.
+			var options = {
+				kdf: kdf,
+				cipher: "aes-128-ctr",
+				kdfparams: {
+					c: 262144,
+					dklen: 32,
+					prf: "hmac-sha256"
+				}
+			};
+			
+			if (callback) {
+				// call asynchronous
+				keythereum.dump(passphrase, dk.privateKey, dk.salt, dk.iv, options, (keyObject) => {
+					keystorestring = JSON.stringify(keyObject);
+					
+					callback(null, keystorestring);
+				});
+				
+				return;
+			}
+			else {
+				// call synchronous
+				var keyObject = keythereum.dump(passphrase, dk.privateKey, dk.salt, dk.iv, options);
+				
+				keystorestring = JSON.stringify(keyObject);
+			}
+		}
+		catch(e) {
+			console.log('exception in getPrivateKeyStoreString generating with keythereum: ' + e);
+			
+			if (callback) {
+				callback('exception in getPrivateKeyStoreString generating with keythereum: ' + e, null);
+				return;
+			}
+		}
 		
-		dk.privateKey = ethereumjs.Util.toBuffer(_privatekey);
+		/*if (!keystorestring) {
+			// failed to generate with keythereum (e.g. within JavaScriptCore),
+			// try with ethereumjs
+			try {
+				const wallet = ethereumjs.Wallet.fromPrivateKey(ethereumjs.Util.toBuffer(_privatekey));
+				
+				//const address = wallet.getAddressString();
+				//const keystoreFilename = wallet.getV3Filename();
+				//const keystore = wallet.toV3(passphrase);
+				keystorestring = wallet.toV3String(passphrase);
+			}
+			catch(e) {
+				console.log('exception in getPrivateKeyStoreString generating with ethereumjs: ' + e);
+			}
+		}*/
 		
-		// key export
-		var kdf = "pbkdf2"; // or "scrypt" to use the scrypt kdf
+		if (!keystorestring) {
+			var error = 'could not generate a key store';
+			
+			throw new Error(error);
+		}
 		
-		// Note: if options is unspecified, the values in keythereum.constants are used.
-		var options = {
-		  kdf: "pbkdf2",
-		  cipher: "aes-128-ctr",
-		  kdfparams: {
-		    c: 262144,
-		    dklen: 32,
-		    prf: "hmac-sha256"
-		  }
-		};
-		
-		var keyObject = keythereum.dump(passphrase, dk.privateKey, dk.salt, dk.iv, options);
-		
-		var keystorestring = JSON.stringify(keyObject);
 		
 		return keystorestring;		
 	}
 	
-	readPrivateKeyFromStoreString(keystorestring, passphrase) {
+	readPrivateKeyFromStoreString(keystorestring, passphrase, callback) {
 		if (!keystorestring)
 			return;
 		
@@ -494,15 +533,44 @@ class CryptoKeyEncryption {
 		var keythereum = this.getKeythereumClass();
 
 		var keyObject = JSON.parse(keystorestring);
-		var key = keythereum.recover(passphrase, keyObject);
 		
-		_privatekey = '0x' + key.toString('hex');
+		if (callback) {
+			// call asynchronous
+			keythereum.recover(passphrase, keyObject, (key) => {
+				if (key) {
+					_privatekey = '0x' + key.toString('hex');
+					
+					// fill cryptokey
+					var cryptokey = this.cryptokey;
+					cryptokey.setPrivateKey(_privatekey);
+					
+					callback(null, cryptokey.getPrivateKey());
+				}
+				else {
+					callback('no private key found', null);
+				}
+			});
+			
+			return;
+		}
+		else {
+			// call synchronous
+			var key = keythereum.recover(passphrase, keyObject, (key));
+			
+			if (key) {
+				_privatekey = '0x' + key.toString('hex');
+				
+				// fill cryptokey
+				var cryptokey = this.cryptokey;
+				cryptokey.setPrivateKey(_privatekey);
+				
+				return cryptokey.getPrivateKey();
+			}
+			else {
+				return null;
+			}
+		}
 		
-		// fill cryptokey
-		var cryptokey = this.cryptokey;
-		cryptokey.setPrivateKey(_privatekey);
-		
-		return cryptokey.getPrivateKey();
 	}
 	
 
@@ -689,9 +757,9 @@ class CryptoKeyEncryption {
 	}
 	
 	getRsaPublicKeyFromPrivateKey(privateKey) {
-	    var bitcore = this.getBitcoreClass();
+		var bitcore = this.getBitcoreClass();
 
-	    var wif_key = this.getRsaWifFromPrivateKey(privateKey);
+		var wif_key = this.getRsaWifFromPrivateKey(privateKey);
 		var privateKey = new bitcore.PrivateKey(wif_key);
 		var rsa_public_key = '0x' + privateKey.toPublicKey().toString('hex');
 
@@ -710,9 +778,9 @@ class CryptoKeyEncryption {
 			if (cryptokey.private_key) {
 				// in case rsa public key has not been computed (should not happen)
 				console.log('SHOULD NOT HAPPEN: no rsa public key, but cryptokey has a private key');
-			    var bitcore = this.getBitcoreClass();
+				var bitcore = this.getBitcoreClass();
 
-			    var cryptokeywif = this.getRsaWifFromPrivateKey(cryptokey.private_key);
+				var cryptokeywif = this.getRsaWifFromPrivateKey(cryptokey.private_key);
 				var cryptokeyPrivateKey = new bitcore.PrivateKey(cryptokeywif);
 				
 				return '0x' + cryptokeyPrivateKey.toPublicKey().toString('hex');
@@ -726,17 +794,17 @@ class CryptoKeyEncryption {
 	rsaEncryptString(plaintext, recipientcryptokey) {
 		console.log('CryptoKeyEncryption.rsaEncryptString called for ' + plaintext);
 		
-	    var bitcore = this.getBitcoreClass();
-	    var ECIES = this.getBitcoreEcies();
+		var bitcore = this.getBitcoreClass();
+		var ECIES = this.getBitcoreEcies();
 
-	    // sender, this cryptokey
-	    //var senderwif = 'Kxr9tQED9H44gCmp6HAdmemAzU3n84H3dGkuWTKvE23JgHMW8gct';
-	    var senderwif = this.getRsaWifFromPrivateKey(this.cryptokey.private_key);
+		// sender, this cryptokey
+		//var senderwif = 'Kxr9tQED9H44gCmp6HAdmemAzU3n84H3dGkuWTKvE23JgHMW8gct';
+		var senderwif = this.getRsaWifFromPrivateKey(this.cryptokey.private_key);
 		var senderPrivateKey = new bitcore.PrivateKey(senderwif);
 		
 		// recipient
-	    //var recipientwif = 'Kxr9tQED9H44gCmp6HAdmemAzU3n84H3dGkuWTKvE23JgHMW8gct';
-	    //var recipientwif = this.getRsaWifFromPrivateKey(recipientcryptokey.private_key);
+		//var recipientwif = 'Kxr9tQED9H44gCmp6HAdmemAzU3n84H3dGkuWTKvE23JgHMW8gct';
+		//var recipientwif = this.getRsaWifFromPrivateKey(recipientcryptokey.private_key);
 		//var recipientPrivateKey = new bitcore.PrivateKey(recipientwif);
 		//var recipientPublicKey = recipientPrivateKey.toPublicKey();
 		var rsapubkey = this.getRsaPublicKey(recipientcryptokey);
@@ -744,20 +812,20 @@ class CryptoKeyEncryption {
 
 		// encryption
 		var encryptor = new ECIES()
-	      .privateKey(senderPrivateKey)
-	      .publicKey(recipientPublicKey);
+			.privateKey(senderPrivateKey)
+			.publicKey(recipientPublicKey);
 
-	    var encrypted = '0x' + encryptor.encrypt(plaintext).toString('hex');
-	    
-	    // test decrypt
-	    /*var decrypted = recipientcryptokey.rsaDecryptString(encrypted, this.cryptokey);
-	    
-	    console.log('plaintext is ' + plaintext);
-	    console.log('encrypted text is ' + encrypted);
-	    console.log('decrypted text is ' + decrypted);*/
+		var encrypted = '0x' + encryptor.encrypt(plaintext).toString('hex');
+		
+		// test decrypt
+		/*var decrypted = recipientcryptokey.rsaDecryptString(encrypted, this.cryptokey);
+		
+		console.log('plaintext is ' + plaintext);
+		console.log('encrypted text is ' + encrypted);
+		console.log('decrypted text is ' + decrypted);*/
 
-	    
-	    return encrypted;
+		
+		return encrypted;
 	}
 	
 	rsaDecryptString(cyphertext, sendercryptokey) {
@@ -768,32 +836,32 @@ class CryptoKeyEncryption {
 		if (hexcypertext.length == 0)
 			return '';
 
-	    var bitcore = this.getBitcoreClass();
-	    var ECIES = this.getBitcoreEcies();
+		var bitcore = this.getBitcoreClass();
+		var ECIES = this.getBitcoreEcies();
 		var ethereumjs = this.getEthereumJsClass();
-	    
-	    // sender
-	    //var senderwif = 'Kxr9tQED9H44gCmp6HAdmemAzU3n84H3dGkuWTKvE23JgHMW8gct';
-	    //var senderwif = this.getRsaWifFromPrivateKey(sendercryptokey.private_key);
+		
+		// sender
+		//var senderwif = 'Kxr9tQED9H44gCmp6HAdmemAzU3n84H3dGkuWTKvE23JgHMW8gct';
+		//var senderwif = this.getRsaWifFromPrivateKey(sendercryptokey.private_key);
 		//var senderPrivateKey = new bitcore.PrivateKey(senderwif);
 		//var senderPublicKey = senderPrivateKey.toPublicKey();
 		var rsapubkey = this.getRsaPublicKey(sendercryptokey);
 		var senderPublicKey = new bitcore.PublicKey(rsapubkey.substring(2));
-
+		
 		// recipient, this cryptokey
-	    //var recipientwif = 'Kxr9tQED9H44gCmp6HAdmemAzU3n84H3dGkuWTKvE23JgHMW8gct';
-	    var recipientwif = this.getRsaWifFromPrivateKey(this.cryptokey.private_key);
+		//var recipientwif = 'Kxr9tQED9H44gCmp6HAdmemAzU3n84H3dGkuWTKvE23JgHMW8gct';
+		var recipientwif = this.getRsaWifFromPrivateKey(this.cryptokey.private_key);
 		var recipientPrivateKey = new bitcore.PrivateKey(recipientwif);
 
 		var decryptor = new ECIES()
-	      .privateKey(recipientPrivateKey)
-	      .publicKey(senderPublicKey);
+			.privateKey(recipientPrivateKey)
+			.publicKey(senderPublicKey);
 		
 		var cypherbuf = ethereumjs.Buffer.Buffer(hexcypertext, 'hex');
 
-	    var plaintext = decryptor.decrypt(cypherbuf).toString('utf8');
-
-	    return plaintext;
+		var plaintext = decryptor.decrypt(cypherbuf).toString('utf8');
+		
+		return plaintext;
 	}
 	
 	// signature
@@ -914,11 +982,11 @@ class CryptoKeyEncryption {
 	hash_hmac(hashforce, datastring, keystring) {
 		var keythereum = this.getKeythereumClass();
 		var ethereumjs = this.getEthereumJsClass();
-	    var bitcore = this.getBitcoreClass();
-	    var ECIES = this.getBitcoreEcies();
-
-	    
-	    var Hash = bitcore.crypto.Hash;
+		var bitcore = this.getBitcoreClass();
+		var ECIES = this.getBitcoreEcies();
+		
+		
+		var Hash = bitcore.crypto.Hash;
 		
 		var hashf = (hashforce == 'sha512' ? Hash.sha512 : Hash.sha256);
 		var data = Buffer.from(datastring);

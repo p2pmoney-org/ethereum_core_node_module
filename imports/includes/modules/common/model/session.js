@@ -20,7 +20,7 @@ var Session = class {
 		var commonmodule = global.getModuleObject('common');
 
 		// local storage
-		this.localstorage = new commonmodule.LocalStorage(this);
+		this.localstorageobject = new commonmodule.LocalStorage(this);
 		
 		// instantiation mechanism
 		this.classmap = Object.create(null); 
@@ -146,7 +146,7 @@ var Session = class {
 	
 	// storage
 	getLocalStorageObject() {
-		return this.localstorage;
+		return this.localstorageobject;
 	}
 
 	getLocalStorageAccessInstance() {
@@ -551,7 +551,7 @@ var Session = class {
 		this.accountmap.empty();
 		
 		// we clean the local storage
-		this.localstorage.empty();
+		this.localstorageobject.empty();
 	}
 	
 	getSessionUserObject() {

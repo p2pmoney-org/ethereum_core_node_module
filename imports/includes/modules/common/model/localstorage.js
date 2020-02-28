@@ -28,7 +28,7 @@ var CacheStorage = class {
 }
 
 var LocalStorage = class {
-	static get KEY_VALIDATION_REGEX() { return "^[A-Za-z0-9@+.]+$";}
+	static get KEY_VALIDATION_REGEX() { return "^[A-Za-z0-9._%@+]+$";} // no '-' that is separator for keys
 
 	constructor(session) {
 		this.session = session;
@@ -387,16 +387,20 @@ var LocalStorage = class {
 	
 }
 
-if ( typeof GlobalClass !== 'undefined' && GlobalClass )
+if ( typeof GlobalClass !== 'undefined' && GlobalClass ) {
+	GlobalClass.registerModuleClass('common', 'CacheStorage', CacheStorage);
 	GlobalClass.registerModuleClass('common', 'LocalStorage', LocalStorage);
+}
 else if (typeof window !== 'undefined') {
 	let _GlobalClass = ( window && window.simplestore && window.simplestore.Global ? window.simplestore.Global : null);
 	
+	_GlobalClass.registerModuleClass('common', 'CacheStorage', CacheStorage);
 	_GlobalClass.registerModuleClass('common', 'LocalStorage', LocalStorage);
 }
 else if (typeof global !== 'undefined') {
 	// we are in node js
 	let _GlobalClass = ( global && global.simplestore && global.simplestore.Global ? global.simplestore.Global : null);
 	
+	_GlobalClass.registerModuleClass('common', 'CacheStorage', CacheStorage);
 	_GlobalClass.registerModuleClass('common', 'LocalStorage', LocalStorage);
 }

@@ -9,9 +9,10 @@ var Module = class {
 		this.isready = false;
 		this.isloading = false;
 		
-		this.localStorage = null;
+		this.clientStorage = null;
+		//this.localStorage = null;
 		
-		this.storage_access_instance = null;
+		//this.storage_access_instance = null;
 	}
 	
 	init() {
@@ -59,6 +60,7 @@ var Module = class {
 	
 	// objects
 	getClientStorageAccessInstance(session) {
+		// instantiate class in this file
 		return new StorageAccess(session);
 	}
 	
@@ -103,44 +105,43 @@ var Module = class {
 		return key;
 	}
 	
-	_getLocalStorage(session) {
-		if (session && session.localStorage)
-			return session.localStorage;
+	_getClientStorage(session) {
+		if (session && session.clientStorage)
+			return session.clientStorage;
 		
 		// else return default
-		if (this.localStorage)
-			return this.localStorage;
+		if (this.clientStorage)
+			return this.clientStorage;
 		
 		// if default not initialized yet
 		if (typeof localStorage !== 'undefined') {
 			// we are in the browser
-			//this.localStorage = localStorage;
-			this.localStorage = new BrowserClientStorage();
+			this.clientStorage = new BrowserClientStorage();
 		}
 		else {
-			if ((typeof window !== 'undefined') && (typeof window.simplestore.localStorage !== 'undefined')) {
+			if ((typeof window !== 'undefined') && (typeof window.simplestore.clientStorage !== 'undefined')) {
 				// we are in react native
-				this.localStorage = window.simplestore.localStorage;
+				this.clientStorage = window.simplestore.clientStorage;
 			}
-			else if ((typeof global !== 'undefined') && (typeof global.simplestore.localStorage !== 'undefined')) {
+			else if ((typeof global !== 'undefined') && (typeof global.simplestore.clientStorage !== 'undefined')) {
 				// we are in nodejs
-				this.localStorage = global.simplestore.localStorage;
+				this.clientStorage = global.simplestore.clientStorage;
 			}
 		}
 		
-		return this.localStorage;
+		return this.clientStorage;
 	}
 	
 	readClientSideJson(session, keys, callback) {
 		var keystring = this.keystostring(keys);
-		var localStorage = this._getLocalStorage(session);
+		var _clientStorage = this._getClientStorage(session);
 		var jsonstring;
 		var json;
 		
-		if (localStorage) {
-			if (localStorage.readClientSideJson) {
+		if (_clientStorage) {
+			if (_clientStorage.readClientSideJson) {
 				// supports call with callback
-				jsonstring = localStorage.readClientSideJson(session, keystring, function(err, res) {
+				jsonstring = _clientStorage.readClientSideJson(session, keystring, function(err, res) {
 					jsonstring = res;
 					
 					json = (jsonstring ? JSON.parse(jsonstring) : null);
@@ -152,7 +153,7 @@ var Module = class {
 			else {
 				// browser localstorage
 				console.log('WARNING: obsolete, should not appear');
-				jsonstring = localStorage.getItem(keystring);
+				jsonstring = _clientStorage.getItem(keystring);
 				
 				json = (jsonstring ? JSON.parse(jsonstring) : null);
 				
@@ -178,17 +179,17 @@ var Module = class {
 
 		//console.log("saving in client side local storage json " + jsonstring + " for key " + keystring());
 		
-		var localStorage = this._getLocalStorage(session);
+		var _clientStorage = this._getClientStorage(session);
 		
-		if (localStorage) {
-			if (localStorage.saveClientSideJson) {
-				localStorage.saveClientSideJson(session, keystring, jsonstring, callback); // nodejs or react-native encapsulation
+		if (_clientStorage) {
+			if (_clientStorage.saveClientSideJson) {
+				_clientStorage.saveClientSideJson(session, keystring, jsonstring, callback); // nodejs or react-native encapsulation
 			}
 			else {
 				// browser local storage
 				console.log('WARNING: obsolete, should not appear');
 				
-				localStorage.setItem(keystring, jsonstring); 
+				_clientStorage.setItem(keystring, jsonstring); 
 				
 				if (callback)
 					callback(null, jsonstring);
@@ -201,11 +202,11 @@ var Module = class {
 	}
 	
 	loadClientSideJsonArtifact(session, jsonfile, callback) {
-		var localStorage = this._getLocalStorage(session);
-		var json = (localStorage ? (localStorage.loadClientSideJsonArtifact ? localStorage.loadClientSideJsonArtifact(session, jsonfile, callback) : {}) : {});
+		var _clientStorage = this._getClientStorage(session);
+		var json = (_clientStorage ? (_clientStorage.loadClientSideJsonArtifact ? _clientStorage.loadClientSideJsonArtifact(session, jsonfile, callback) : {}) : {});
 		
-		if ((localStorage) && (localStorage.loadClientSideJsonArtifact)) {
-			localStorage.loadClientSideJsonArtifact(session, jsonfile, callback);
+		if ((_clientStorage) && (_clientStorage.loadClientSideJsonArtifact)) {
+			_clientStorage.loadClientSideJsonArtifact(session, jsonfile, callback);
 		}
 		else {
 			if (callback)
@@ -222,28 +223,28 @@ var Module = class {
 
 var BrowserClientStorage = class {
 	constructor() {
-		this.browserLocalStorage = localStorage;
+		this.browserClientStorage = window.localStorage;
 	}
 	
 	// standard local storage
 	setItem(key, value) {
-		return this.browserLocalStorage.setItem(key, value);
+		return this.browserClientStorage.setItem(key, value);
 	}
 	
 	getItem(key) {
-		return this.browserLocalStorage.getItem(key);
+		return this.browserClientStorage.getItem(key);
 	}
 	
 	removeItem(key) {
-		return this.browserLocalStorage.removeItem(key);
+		return this.browserClientStorage.removeItem(key);
 	}
 	
 	key(index) {
-		return this.browserLocalStorage.key(index);
+		return this.browserClientStorage.key(index);
 	}
 	
 	clear() {
-		return this.browserLocalStorage.clear();
+		return this.browserClientStorage.clear();
 	}
 	
 	// ethereum_core storage access
@@ -281,7 +282,7 @@ var BrowserClientStorage = class {
 			}
 		}
 		
-		var jsonstring = this.browserLocalStorage.getItem(_keystring);
+		var jsonstring = this.browserClientStorage.getItem(_keystring);
 		
 		if (callback)
 			callback((jsonstring ? null : 'no result found'), jsonstring);
@@ -306,7 +307,7 @@ var BrowserClientStorage = class {
 			}
 		}
 		
-		this.browserLocalStorage.setItem(_keystring, jsonstring); 
+		this.browserClientStorage.setItem(_keystring, jsonstring); 
 		
 		if (callback)
 			callback(null, jsonstring);
@@ -500,6 +501,7 @@ class StorageAccess {
 			
 			
 			// local storage
+			// TODO: we should not call commonmodule here, but use directly clientstorage
 			var commonmodule = global.getModuleObject('common');
 			
 			var jsonleaf = commonmodule.getLocalJsonLeaf(session, keys, uuid);
@@ -550,6 +552,7 @@ class StorageAccess {
 				
 			
 			// local storage
+			// TODO: we should not call commonmodule here, but use directly clientstorage
 			var commonmodule = global.getModuleObject('common');
 			
 			var jsonleaf = commonmodule.getLocalJsonLeaf(session, keys, uuid);
@@ -601,6 +604,7 @@ class StorageAccess {
 			
 
 			// local storage
+			// TODO: we should not call commonmodule here, but use directly clientstorage
 			var commonmodule = global.getModuleObject('common');
 			
 			var jsonleaf = commonmodule.getLocalJsonLeaf(session, keys, uuid);
@@ -650,6 +654,7 @@ class StorageAccess {
 			
 
 			// local storage
+			// TODO: we should not call commonmodule here, but use directly clientstorage
 			var commonmodule = global.getModuleObject('common');
 			
 			var jsonleaf = commonmodule.getLocalJsonLeaf(session, keys, uuid);
@@ -699,6 +704,7 @@ class StorageAccess {
 			
 
 			// local storage
+			// TODO: we should not call commonmodule here, but use directly clientstorage
 			var commonmodule = global.getModuleObject('common');
 			
 			var jsonleaf = commonmodule.getLocalJsonLeaf(session, keys, uuid);
@@ -723,12 +729,12 @@ class StorageAccess {
 	// uuid
 	guid() {
 		function s4() {
-		    return Math.floor((1 + Math.random()) * 0x10000)
-		      .toString(16)
-		      .substring(1);
-		  }
-		  return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
-		    s4() + '-' + s4() + s4() + s4();
+			return Math.floor((1 + Math.random()) * 0x10000)
+				.toString(16)
+				.substring(1);
+		}
+		return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
+			s4() + '-' + s4() + s4() + s4();
 	}
 
 }

@@ -265,10 +265,15 @@ var Module = class {
 	}
 	
 	unstackEthereumTransactionObject(session, params) {
+		var global = this.global;
+		var _globalscope = global.getExecutionGlobalScope();
+
+		var EthereumTransactionClass = (typeof EthereumTransaction !== 'undefined' ? EthereumTransaction : _globalscope.simplestore.EthereumTransaction);
+		
 		let txjson = params[params.length - 1];
 		let args = params.slice(0,-1);
 
-		if (txjson instanceof EthereumTransaction) {
+		if (txjson instanceof EthereumTransactionClass) {
 			var ethereumtransaction = params[params.length - 1];
 		}
 		else {
@@ -2521,10 +2526,15 @@ class EthereumNodeAccess {
 	
 }
 
-if ( typeof window !== 'undefined' && window ) // if we are in browser and not node js (e.g. truffle)
-window.simplestore.EthereumNodeAccess = EthereumNodeAccess;
-else if (typeof global !== 'undefined')
-global.simplestore.EthereumNodeAccess = EthereumNodeAccess; // we are in node js
+if ( typeof window !== 'undefined' && window ) {
+	// if we are in browser or react-native and not node js)
+	window.simplestore.EthereumNodeAccess = EthereumNodeAccess;
+	window.simplestore.EthereumTransaction = EthereumTransaction;
+} else if (typeof global !== 'undefined') {
+	// we are in node js
+	global.simplestore.EthereumNodeAccess = EthereumNodeAccess; 
+	global.simplestore.EthereumTransaction = EthereumTransaction;
+}
 
 if ( typeof GlobalClass !== 'undefined' && GlobalClass )
 GlobalClass.getGlobalObject().registerModuleObject(new Module());
