@@ -14,10 +14,27 @@ var RestConnection = class {
 	}
 	
 	getRestCallUrl() {
-	    var rest_server_url = this.rest_server_url;
-	    var rest_server_api_path = this.rest_server_api_path;
+		var rest_server_url = this.rest_server_url;
+		var rest_server_api_path = this.rest_server_api_path;
 		
-	    return rest_server_url + (rest_server_api_path ? rest_server_api_path : '');
+		return rest_server_url + (rest_server_api_path ? rest_server_api_path : '');
+	}
+	
+	__isValidURL(url) {
+		var pattern = new RegExp('^(https?:\\/\\/)?'+ // protocol
+					'((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // domain name
+					'((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
+					'(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
+					'(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
+					'(\\#[-a-z\\d_]*)?$','i'); // fragment locator
+				
+		return !!pattern.test(url);
+	}
+	
+	_isReady() {
+		var resturl = this.getRestCallUrl();
+		
+		return this.__isValidURL(resturl);
 	}
 	
 	addToHeader(keyvalue) {
@@ -25,190 +42,190 @@ var RestConnection = class {
 	}
 	
 	_setRequestHeader(xhttp) {
-	    xhttp.setRequestHeader("Content-type", "application/json");
-	    xhttp.setRequestHeader("sessiontoken", this.session.getSessionUUID());
+		xhttp.setRequestHeader("Content-type", "application/json");
+		xhttp.setRequestHeader("sessiontoken", this.session.getSessionUUID());
 		
-	    for (var key in this.header) {
-		    xhttp.setRequestHeader(key, this.header[key]);
-	    }
+		for (var key in this.header) {
+			xhttp.setRequestHeader(key, this.header[key]);
+		}
 	}
 	
 	_createXMLHttpRequest(method, resource) {
 		var xhttp = new XMLHttpRequest();
 		
-	    var rest_call_url = this.getRestCallUrl();
-	    var resource_url = rest_call_url + resource;
-	    
+		var rest_call_url = this.getRestCallUrl();
+		var resource_url = rest_call_url + resource;
+		
 		// allow Set-Cookie for CORS calls
 		//xhttp.withCredentials = true;
 		
-	    xhttp.open(method, resource_url, true);
+		xhttp.open(method, resource_url, true);
 
 		this._setRequestHeader(xhttp);
-	    
-	    return xhttp;
+		
+		return xhttp;
 	}
 	
 	rest_get(resource, callback) {
 		console.log("RestConnection.rest_get called for resource " + resource);
 		
 		var session = this.session;
-	    
+		
 		var xhttp = this._createXMLHttpRequest("GET", resource);
 		
-	    xhttp.send();
-	    
-	    xhttp.onload = function(e) {
-		    if (xhttp.status == 200) {
-			    //console.log('response text is ' + xhttp.responseText);
-			    
-		    	if (callback) {
-			    	var jsonresponse = JSON.parse(xhttp.responseText);
-			    		    		
-			    	if (jsonresponse['status'] && (jsonresponse['status'] == '1')) {
-			    		//console.log('RestConnection.rest_get response is ' + JSON.stringify(jsonresponse));
-			    		callback(null, jsonresponse);
-			    	}
-			    	else {
-			    		callback((jsonresponse['error'] ? jsonresponse['error'] : 'unknown error'), null);
-			    	}
-		    	}
-		    }
-		    else {
-		    	if (callback)
-		    		callback(xhttp.statusText, null);	
+		xhttp.send();
+		
+		xhttp.onload = function(e) {
+			if (xhttp.status == 200) {
+				//console.log('response text is ' + xhttp.responseText);
+				
+				if (callback) {
+					var jsonresponse = JSON.parse(xhttp.responseText);
+									
+					if (jsonresponse['status'] && (jsonresponse['status'] == '1')) {
+						//console.log('RestConnection.rest_get response is ' + JSON.stringify(jsonresponse));
+						callback(null, jsonresponse);
+					}
+					else {
+						callback((jsonresponse['error'] ? jsonresponse['error'] : 'unknown error'), null);
+					}
+				}
 			}
-	    	
-	    };
-	    
-	    xhttp.onerror = function (e) {
-	    	console.error('rest error is ' + xhttp.statusText);
-	    	
-	    	if (callback)
-	    		callback(xhttp.statusText, null);	
-	    };
-	    
+			else {
+				if (callback)
+					callback(xhttp.statusText, null);	
+			}
+			
+		};
+		
+		xhttp.onerror = function (e) {
+			console.log('rest error is ' + xhttp.statusText);
+			
+			if (callback)
+				callback(xhttp.statusText, null);	
+		};
+		
 	}
 	
 	rest_post(resource, postdata, callback) {
 		console.log("RestConnection.rest_post called for resource " + resource);
 		
 		var session = this.session;
-	    
+		
 		var xhttp = this._createXMLHttpRequest("POST", resource);
 		
-	    xhttp.send(JSON.stringify(postdata));
-	    
-	    xhttp.onload = function(e) {
-		    if ((xhttp.status == 200) ||  (xhttp.status == 201)) {
-			    //console.log('response text is ' + xhttp.responseText);
-		    	
-		    	if (callback) {
-			    	var jsonresponse = JSON.parse(xhttp.responseText);
-			    		    		
-			    	if (jsonresponse['status'] && (jsonresponse['status'] == '1')) {
-			    		//console.log('RestConnection.rest_post response is ' + JSON.stringify(jsonresponse));
-			    		callback(null, jsonresponse);
-			    	}
-			    	else  {
-			    		callback((jsonresponse['error'] ? jsonresponse['error'] : 'unknown error'), null);
-			    	}
-		    	}
-		    }
-		    else {
-		    	if (callback)
-		    		callback(xhttp.statusText, null);	
+		xhttp.send(JSON.stringify(postdata));
+		
+		xhttp.onload = function(e) {
+			if ((xhttp.status == 200) ||  (xhttp.status == 201)) {
+				//console.log('response text is ' + xhttp.responseText);
+				
+				if (callback) {
+					var jsonresponse = JSON.parse(xhttp.responseText);
+						    		
+					if (jsonresponse['status'] && (jsonresponse['status'] == '1')) {
+						//console.log('RestConnection.rest_post response is ' + JSON.stringify(jsonresponse));
+						callback(null, jsonresponse);
+					}
+					else  {
+						callback((jsonresponse['error'] ? jsonresponse['error'] : 'unknown error'), null);
+					}
+				}
 			}
-	    	
-	    };
-	    
-	    xhttp.onerror = function (e) {
-	    	console.error('rest error is ' + xhttp.statusText);
-	    	
-	    	if (callback)
-	    		callback(xhttp.statusText, null);	
-	    };
-	    
+			else {
+				if (callback)
+					callback(xhttp.statusText, null);	
+			}
+			
+		};
+		
+		xhttp.onerror = function (e) {
+			console.log('rest error is ' + xhttp.statusText);
+			
+			if (callback)
+				callback(xhttp.statusText, null);	
+		};
+		
 	}
 	
 	rest_put(resource, postdata, callback) {
 		console.log("RestConnection.rest_put called for resource " + resource);
 		
 		var session = this.session;
-	    
+		
 		var xhttp = this._createXMLHttpRequest("PUT", resource);
 		
-	    xhttp.send(JSON.stringify(postdata));
-	    
-	    xhttp.onload = function(e) {
-		    if ((xhttp.status == 200) ||  (xhttp.status == 201)){
-			    //console.log('response text is ' + xhttp.responseText);
-		    	if (callback) {
-			    	var jsonresponse = JSON.parse(xhttp.responseText);
-			    		    		
-			    	if (jsonresponse['status'] && (jsonresponse['status'] == '1')) {
-			    		//console.log('RestConnection.rest_put response is ' + JSON.stringify(jsonresponse));
-			    		callback(null, jsonresponse);
-			    	}
-			    	else  {
-			    		callback((jsonresponse['error'] ? jsonresponse['error'] : 'unknown error'), null);
-			    	}
-		    	}
-		    }
-		    else {
-		    	if (callback)
-		    		callback(xhttp.statusText, null);	
+		xhttp.send(JSON.stringify(postdata));
+		
+		xhttp.onload = function(e) {
+			if ((xhttp.status == 200) ||  (xhttp.status == 201)){
+				//console.log('response text is ' + xhttp.responseText);
+				if (callback) {
+					var jsonresponse = JSON.parse(xhttp.responseText);
+					
+					if (jsonresponse['status'] && (jsonresponse['status'] == '1')) {
+						//console.log('RestConnection.rest_put response is ' + JSON.stringify(jsonresponse));
+						callback(null, jsonresponse);
+					}
+					else  {
+						callback((jsonresponse['error'] ? jsonresponse['error'] : 'unknown error'), null);
+					}
+				}
 			}
-	    	
-	    };
-	    
-	    xhttp.onerror = function (e) {
-	    	console.error('rest error is ' + xhttp.statusText);
-	    	
-	    	if (callback)
-	    		callback(xhttp.statusText, null);	
-	    };
-	    
+			else {
+				if (callback)
+					callback(xhttp.statusText, null);	
+			}
+			
+		};
+		
+		xhttp.onerror = function (e) {
+			console.log('rest error is ' + xhttp.statusText);
+			
+			if (callback)
+				callback(xhttp.statusText, null);	
+		};
+		
 	}
 	
 	rest_delete(resource, callback) {
 		console.log("RestConnection.rest_delete called for resource " + resource);
 		
 		var session = this.session;
-	    
+		
 		var xhttp = this._createXMLHttpRequest("DELETE", resource);
 		
-	    xhttp.send();
-	    
-	    xhttp.onload = function(e) {
-		    if (xhttp.status == 200) {
-			    //console.log('response text is ' + xhttp.responseText);
-			    
-		    	if (callback) {
-			    	var jsonresponse = JSON.parse(xhttp.responseText);
-			    		    		
-			    	if (jsonresponse['status'] && (jsonresponse['status'] == '1')) {
-			    		callback(null, jsonresponse);
-			    	}
-			    	else {
-			    		callback((jsonresponse['error'] ? jsonresponse['error'] : 'unknown error'), null);
-			    	}
-		    	}
-		    }
-		    else {
-		    	if (callback)
-		    		callback(xhttp.statusText, null);	
+		xhttp.send();
+		
+		xhttp.onload = function(e) {
+			if (xhttp.status == 200) {
+				//console.log('response text is ' + xhttp.responseText);
+				
+				if (callback) {
+					var jsonresponse = JSON.parse(xhttp.responseText);
+					
+					if (jsonresponse['status'] && (jsonresponse['status'] == '1')) {
+						callback(null, jsonresponse);
+					}
+					else {
+						callback((jsonresponse['error'] ? jsonresponse['error'] : 'unknown error'), null);
+					}
+				}
 			}
-	    	
-	    };
-	    
-	    xhttp.onerror = function (e) {
-	    	console.error('rest error is ' + xhttp.statusText);
-	    	
-	    	if (callback)
-	    		callback(xhttp.statusText, null);	
-	    };
-	    
+			else {
+				if (callback)
+					callback(xhttp.statusText, null);	
+			}
+			
+		};
+		
+		xhttp.onerror = function (e) {
+			console.log('rest error is ' + xhttp.statusText);
+			
+			if (callback)
+				callback(xhttp.statusText, null);	
+		};
+		
 	}
 }
 

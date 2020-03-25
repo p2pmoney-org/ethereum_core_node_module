@@ -346,7 +346,7 @@ var LocalVault = class {
 				break;
 			case LocalVault.LOCAL_VAULT:
 				var localStorage = session.getLocalStorageObject();
-				localStorage.saveLocalJson(keys, json, callback);
+				localStorage.saveLocalJson(_keys, json, callback);
 				break;
 			default:
 				if (callback)

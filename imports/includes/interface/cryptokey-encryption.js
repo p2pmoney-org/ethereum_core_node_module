@@ -525,8 +525,12 @@ class CryptoKeyEncryption {
 	}
 	
 	readPrivateKeyFromStoreString(keystorestring, passphrase, callback) {
-		if (!keystorestring)
+		if (!keystorestring) {
+			if (callback)
+				callback('null keystore string passed', null);
+			
 			return;
+		}
 		
 		var _privatekey;
 		
@@ -542,9 +546,15 @@ class CryptoKeyEncryption {
 					
 					// fill cryptokey
 					var cryptokey = this.cryptokey;
-					cryptokey.setPrivateKey(_privatekey);
 					
-					callback(null, cryptokey.getPrivateKey());
+					try {
+						cryptokey.setPrivateKey(_privatekey);
+						
+						callback(null, cryptokey.getPrivateKey());
+					}
+					catch(e) {
+						callback('exception in setPrivateKey: ' + e, null);
+					}
 				}
 				else {
 					callback('no private key found', null);

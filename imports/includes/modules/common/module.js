@@ -3,7 +3,7 @@
 var Module = class {
 	constructor() {
 		this.name = 'common';
-		this.current_version = "0.14.3.2020.02.29";
+		this.current_version = "0.14.4.2020.03.13";
 		
 		this.global = null; // put by global on registration
 		this.isready = false;
