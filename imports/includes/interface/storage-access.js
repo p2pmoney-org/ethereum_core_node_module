@@ -149,9 +149,12 @@ var Module = class {
 					if (callback)
 						callback((json ? null : 'no result found'), json);
 				});
+				
+				json = (jsonstring ? JSON.parse(jsonstring) : null);
 			}
 			else {
 				// browser localstorage
+				// (synchronous call)
 				console.log('WARNING: obsolete, should not appear');
 				jsonstring = _clientStorage.getItem(keystring);
 				

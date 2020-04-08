@@ -3,13 +3,38 @@
  */
 'use strict';
 
-//import {AsyncStorage} from '@react-native-community/async-storage';
+var CacheStorage = class {
+	constructor() {
+		this.map = Object.create(null); // use a simple object to implement the map
+	}
+	
+	getKeyJson(key) {
+		if (key in this.map) {
+			return this.map[key];
+		} 
+	}
+	
+	updateJson(key, json) {
+		this.map[key] = json;
+	}
+	
+	count() {
+		return Object.keys(this.map).length;
+	}
+	
+	empty() {
+		this.map = Object.create(null);
+	}
+}
+
 
 var ReactNativeClientStorage = class {
 	constructor() {
 		this.AsyncStorage = require('@react-native-community/async-storage').default;
 		
 		this.ethereum_core = require('../../ethereum_core.js').getObject();
+		
+		this.storagemap = new CacheStorage(); // use cache to answer synchronously to readClientJson
 	}
 	
 	// standard local storage
@@ -66,19 +91,30 @@ var ReactNativeClientStorage = class {
 		
 		var jsonstringpromise = this.AsyncStorage.getItem(_keystring);
 		
-		jsonstringpromise.then(function(res) {
-			console.log('ReactNativeClientStorage.readClientSideJson value for key: ' + _keystring + ' is ' + res);
+		jsonstringpromise.then((res) => {
+			var jsonstring = res;
 			
+			console.log('ReactNativeClientStorage.readClientSideJson value for key: ' + _keystring + ' is ' + jsonstring);
+			
+			// put in cache
+			if (jsonstring)
+			this.storagemap.updateJson(_keystring, jsonstring);
+
+			// answer to callback
 			if (callback) {
-				if (res)
-					callback(null, res);
+				if (jsonstring) {
+					callback(null, jsonstring);
+				}
 				else
 					callback('no value', null);
 				
 			}
 		});
 		
-		return null;
+		// synchronous answer from cache
+		var entry = this.storagemap.getKeyJson(_keystring);
+		
+		return entry;
 	}
 	
 	saveClientSideJson(session, keystring, value, callback) {
@@ -100,10 +136,21 @@ var ReactNativeClientStorage = class {
 			}
 		}
 		
+		// nota: we put in cache early to let
+		// readClientSideJson answer with this value
+		// even before it is confirmed that the item
+		// is in AsyncStorage
+		this.storagemap.updateJson(_keystring, value);
+
+		
 		var savepromise = this.AsyncStorage.setItem(_keystring, value);
 		
-		savepromise.then(function(res) {
+		savepromise.then((res) => {
 			console.log('ReactNativeClientStorage.saveClientSideJson saved value ' + value + ' for key: ' + _keystring );
+			
+			// put in cache
+			this.storagemap.updateJson(_keystring, value);
+
 			
 			if (callback)
 				callback(null, value);
