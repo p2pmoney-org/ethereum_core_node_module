@@ -484,73 +484,90 @@ class ScriptLoader {
 	}
 
 	static createScriptLoadPromise(file, posttreatment) {
-		//var self = ScriptLoader;
+		var self = ScriptLoader;
 		var javascriptenv = BootstrapObject.getJavascriptEnvironment();
 		
 		switch(javascriptenv) {
 			case 'browser':
-				var promise = new Promise(function(resolve, reject) {
-					console.log('starting load of script ' + file);
-					
+				var promise;
+
+				if (self.no_dynamic_load){
+					console.log('asking (browser packed) to load script: ' + file);
+				
 					if (!ScriptLoader.dapp_dir) {
-						var scripts = document.getElementsByTagName('script');
-						var scripturl = scripts[scripts.length-1].src;
-						var scriptserver = ScriptLoader._getServerName(scripturl);
-						var scriptpath = ScriptLoader._getPathName(scripturl);     
+						ScriptLoader.dapp_dir = "";
+					}
+					
+					promise = new Promise(function(resolve, reject) {
+						ScriptLoader._performScriptLoad(file, posttreatment);
+						resolve(true);
+					});
+				} 
+				else{
+					promise = new Promise(function(resolve, reject) {
+						console.log('starting load of script ' + file);
 						
-						var htmlpageurl= window.location.href;
-						var htmlserver= ScriptLoader._getServerName(htmlpageurl);;
-						var htmlpagepath = ScriptLoader._getPathName(htmlpageurl);
+						if (!ScriptLoader.dapp_dir) {
+							var scripts = document.getElementsByTagName('script');
+							var scripturl = scripts[scripts.length-1].src;
+							var scriptserver = ScriptLoader._getServerName(scripturl);
+							var scriptpath = ScriptLoader._getPathName(scripturl);     
+							
+							var htmlpageurl= window.location.href;
+							var htmlserver= ScriptLoader._getServerName(htmlpageurl);;
+							var htmlpagepath = ScriptLoader._getPathName(htmlpageurl);
+							
+							if (scriptserver !=  htmlserver) {
+								// loading scripts from a different server than the page
+								ScriptLoader.dapp_dir = scriptserver + '/';
+							}
+							else {
+								// same server, compute relative path between the page and scripts
+								ScriptLoader.dapp_dir = ScriptLoader._relativepath(htmlpagepath, scriptpath);
+								
+								// add leading ./
+								ScriptLoader.dapp_dir = './' + ScriptLoader.dapp_dir;
+								
+								// remove includes
+								ScriptLoader.dapp_dir = ScriptLoader.dapp_dir.substring( 0, ScriptLoader.dapp_dir.indexOf( "includes" ) );
+							}
+							
+						}
 						
-						if (scriptserver !=  htmlserver) {
-							// loading scripts from a different server than the page
-							ScriptLoader.dapp_dir = scriptserver + '/';
+						var source;
+						
+						if (file.startsWith('/')) {
+							// '/' means absolute (relative to server)
+							//source = ScriptLoader.dapp_dir + '.' + file;
+							source = file;
+						}
+						else if (file.startsWith('./')) {
+							// './' means relative to dapp dir (not html page)
+							source = ScriptLoader.dapp_dir + file;
 						}
 						else {
-							// same server, compute relative path between the page and scripts
-							ScriptLoader.dapp_dir = ScriptLoader._relativepath(htmlpagepath, scriptpath);
-							
-							// add leading ./
-							ScriptLoader.dapp_dir = './' + ScriptLoader.dapp_dir;
-							
-							// remove includes
-							ScriptLoader.dapp_dir = ScriptLoader.dapp_dir.substring( 0, ScriptLoader.dapp_dir.indexOf( "includes" ) );
+							// probably a full uri (e.g. http://)
+							source = file;
 						}
 						
-					}
-					
-					var source;
-					
-					if (file.startsWith('/')) {
-						// '/' means absolute (relative to server)
-						//source = ScriptLoader.dapp_dir + '.' + file;
-						source = file;
-					}
-					else if (file.startsWith('./')) {
-						// './' means relative to dapp dir (not html page)
-						source = ScriptLoader.dapp_dir + file;
-					}
-					else {
-						// probably a full uri (e.g. http://)
-						source = file;
-					}
-					
-					var script  = document.createElement('script');
-					script.src  = source;
-					script.type = 'text/javascript';
-					script.defer = true;
+						var script  = document.createElement('script');
+						script.src  = source;
+						script.type = 'text/javascript';
+						script.defer = true;
+	
+						script.onload = function(){
+							console.log('script ' + file + ' is now loaded');
+							
+							if (posttreatment)
+								posttreatment();
+							
+							return resolve(true);
+						};
+	
+						document.getElementsByTagName('head').item(0).appendChild(script);
+					});				
+				} 
 
-					script.onload = function(){
-						console.log('script ' + file + ' is now loaded');
-						
-						if (posttreatment)
-							posttreatment();
-						
-						return resolve(true);
-					};
-
-					document.getElementsByTagName('head').item(0).appendChild(script);
-				});
 
 				return promise;
 

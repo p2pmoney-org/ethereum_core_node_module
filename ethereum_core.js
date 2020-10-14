@@ -14,16 +14,36 @@ class Ethereum_core {
 		this.artifactmap = Object.create(null);
 	}
 	
-	init(callback) {
+	async init(callback) {
 		console.log('@p2pmoney-org/ethereum_core init called');
 		
-		if (typeof window !== 'undefined') {
-			// we are in react-native
-			console.log('loading for react-native');
-			
-			var ReactNativeLoad = require( './js/react-native-load.js');
+		if (this.initialized) {
+			console.log('module @p2pmoney-org/ethereum_core is already initialized.');
+			return true;
+		}
+		
+		if (this.initializing) {
+			console.log('module @p2pmoney-org/ethereum_core is already initializing. Wait till it\'s ready.');
+			return this.initializationpromise;
+		}
 
-			this.load = new ReactNativeLoad(this);
+		if (typeof window !== 'undefined') {
+			if (typeof document !== 'undefined' && document ) {
+				// we are in a browser
+				console.log('loading for browser');
+				
+				var BrowserLoad = require( './js/browser-load.js');
+
+				this.load = new BrowserLoad(this);
+			}
+			else {
+				// we are in react-native
+				console.log('loading for react-native');
+				
+				var ReactNativeLoad = require( './js/react-native-load.js');
+
+				this.load = new ReactNativeLoad(this);
+			}
 		}
 		else if (typeof global !== 'undefined') {
 			console.log('loading for nodejs');
@@ -38,11 +58,10 @@ class Ethereum_core {
 		var promise;
 		
 		if (this.initializing === false) {
-			this.initializing = true;
 			
 			this.initializationpromise = new Promise(function (resolve, reject) {
 				self.load.init(function() {
-					console.log('@p2pmoney-org/ethereum_core init finished');
+					console.log('@p2pmoney-org/ethereum_core init ended');
 					self.initialized = true;
 					
 					if (callback)
@@ -52,6 +71,7 @@ class Ethereum_core {
 				});
 			});
 			
+			this.initializing = true;
 		}
 		
 		return this.initializationpromise;

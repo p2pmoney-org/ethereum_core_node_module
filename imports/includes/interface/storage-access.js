@@ -254,7 +254,9 @@ var BrowserClientStorage = class {
 	loadClientSideJsonArtifact(session, jsonfile, callback) {
 		console.log('BrowserClientStorage.loadClientSideJsonArtifact called for: ' + jsonfile);
 		
-		var loadpromise = $.getJSON(jsonfile, function(data) {
+		var _$ = (typeof $ !== 'undefined' && $ ? $ : window.simplestore.jQuery); // in case we are packaged (e.g. with webpack)
+
+		var loadpromise = _$.getJSON(jsonfile, function(data) {
 			console.log('contract json file read ');
 
 			if (callback)
@@ -289,6 +291,8 @@ var BrowserClientStorage = class {
 		
 		if (callback)
 			callback((jsonstring ? null : 'no result found'), jsonstring);
+		
+		return jsonstring;
 	}
 	
 	saveClientSideJson(session, keystring, jsonstring, callback) {

@@ -519,9 +519,12 @@ var Session = class {
 	// user (impersonation)
 	impersonateUser(user) {
 		//if (this.user && user)
-			this.disconnectUser();
+		this.disconnectUser();
 		
 		this.user = user;
+
+		// TODO: we should add user's crypto-keys to the session
+		// instead of asking caller to do the job
 	}
 	
 	disconnectUser() {

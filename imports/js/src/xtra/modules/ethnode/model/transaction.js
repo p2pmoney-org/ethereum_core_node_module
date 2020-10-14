@@ -78,11 +78,12 @@ var Transaction = class {
 		if (this.web3providerurl)
 		return this.web3providerurl;
 		
-		// return default
-		var global = this.session.getGlobalObject();
+		// return session's default
+		var session = this.session;
+		var global = session.getGlobalObject();
 		var ethnodemodule = global.getModuleObject('ethnode');
 		
-		return ethnodemodule.getWeb3ProviderUrl();
+		return ethnodemodule.getWeb3ProviderUrl(session);
 	}
 	
 	setWeb3ProviderUrl(url) {

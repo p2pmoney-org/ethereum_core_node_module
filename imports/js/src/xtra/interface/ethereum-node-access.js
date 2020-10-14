@@ -1891,7 +1891,9 @@ class EthereumNodeAccess {
 		
 		if (_global.isInBrowser()) {
 			// load from the server
-			var loadpromise = $.getJSON(jsonfile, function(data) {
+			var _$ = (typeof $ !== 'undefined' && $ ? $ : window.simplestore.jQuery); // in case we are packaged (e.g. with webpack)
+
+			var loadpromise = _$.getJSON(jsonfile, function(data) {
 				console.log('contract json file read ');
 
 				if (callback)
