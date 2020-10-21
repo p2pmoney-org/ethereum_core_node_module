@@ -1885,13 +1885,25 @@ class EthereumNodeAccess {
 	
 	
 	// contracts
+	_getJQueryClass() {
+		typeof window !== 'undefined' && window
+		if (typeof $ !== 'undefined')
+			return $;
+		else if (typeof window !== 'undefined' && window && (typeof window.simplestore !== 'undefined'))
+		  return window.simplestore.jQuery;
+		else if ((typeof global !== 'undefined') && (typeof global.simplestore !== 'undefined'))
+			return global.simplestore.jQuery;
+		else
+		throw 'can not find JQuery class!!!';
+	}
+
 	_loadArtifact(jsonfile, callback) {
 		var session = this.session;
 		var _global = session.getGlobalObject();
 		
 		if (_global.isInBrowser()) {
 			// load from the server
-			var _$ = (typeof $ !== 'undefined' && $ ? $ : window.simplestore.jQuery); // in case we are packaged (e.g. with webpack)
+			var _$ = this._getJQueryClass(); // in case we are packaged (e.g. with webpack)
 
 			var loadpromise = _$.getJSON(jsonfile, function(data) {
 				console.log('contract json file read ');

@@ -65,6 +65,10 @@ var Block = class {
 		this.uncles = data.uncles;	
 		
 	}
+
+	getData() {
+		return this.data;
+	}
 	
 	// sync
 
@@ -94,27 +98,6 @@ var Block = class {
 			
 			return self;
 		});
-		
-	    /*var web3 = chainreadermodule.getWeb3Instance();
-	    var promise = new Promise( function(resolve, reject) {
-	    	return web3.eth.getBlock(self.blocknumber, bWithTransactions, function (err, res) {
-				if (err) {
-					if (callback)
-						callback(err, null);
-					
-					return reject(null);
-				}
-				
-				self._setData(res);
-				
-				if (callback)
-					callback(null, self);
-				
-				return resolve(self);
-			});
-	    });
-	    
-	    return promise;*/
 	}
 	
 	getTransactions(callback) {
@@ -139,7 +122,7 @@ var Block = class {
 		})
 		.then( function(res) {
 			if (self.transactions) {
-				return Transaction.getTransactionsFromJsonArray(this.session, self.transactions, function (err, res) {
+				return Transaction.getTransactionsFromJsonArray(self.session, self.transactions, function (err, res) {
 					if (err) {
 						if (callback)
 							callback(err, null);
@@ -184,9 +167,9 @@ var Block = class {
 			}
 			
 			if (callback)
-				callback(null, res);
-			
-			return res;
+				callback(null, block);
+
+			return block;
 		});
 		
 		return promise;
@@ -227,18 +210,19 @@ var Block = class {
 	
 	static getLatestBlock(session, callback) {
 		var Block = this.getClass();
-		
-		var blocknumber = this.getLastBlockNumber(session, function (err, res) {
-			
-			if (err) {
-				if (callback)
-					callback(err, null);
-				
-				return null;
-			}
 
+		var promise = this.getLastBlockNumber(session)
+		.then( function (res) {
 			return Block.getBlock(session, res, callback);
+		})
+		.catch( function (err) {
+			if (callback)
+			callback(err, null);
+		
+			return null;		
 		});
+			
+		return promise;
 	}
 
 }

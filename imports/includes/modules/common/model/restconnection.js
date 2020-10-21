@@ -49,9 +49,31 @@ var RestConnection = class {
 			xhttp.setRequestHeader(key, this.header[key]);
 		}
 	}
+
+	_getXMLHttpRequestClass() {
+		if (typeof XMLHttpRequest !== 'undefined' && XMLHttpRequest ) {
+			return XMLHttpRequest;
+		}
+		else if (typeof window !== 'undefined' && window ) {
+			// normally (browser or react native), XMLHttpRequest should be directly accessible
+			if (typeof window.XMLHttpRequest !== 'undefined')
+				return window.XMLHttpRequest;
+			else if ( (typeof window.simplestore !== 'undefined')
+					&& (typeof window.simplestore.XMLHttpRequest !== 'undefined'))
+					return window.simplestore.XMLHttpRequest;
+		}
+		else if ((typeof global !== 'undefined') && (typeof global.simplestore !== 'undefined')
+				&& (typeof global.simplestore.XMLHttpRequest !== 'undefined')) {
+			return global.simplestore.XMLHttpRequest;
+		}
+		else {
+			throw 'can not find XMLHttpRequest class!!!';
+		}
+	}
 	
 	_createXMLHttpRequest(method, resource) {
-		var xhttp = new XMLHttpRequest();
+		var _XMLHttpRequest = this._getXMLHttpRequestClass()
+		var xhttp = new _XMLHttpRequest();
 		
 		var rest_call_url = this.getRestCallUrl();
 		var resource_url = rest_call_url + resource;

@@ -105,27 +105,7 @@ var Account = class {
 			
 			return res;
 		});
-	    
-	    /*var web3 = chainreadermodule.getWeb3Instance();
-		var promise = new Promise( function(resolve, reject) {
-			return web3.eth.getBalance(accountaddr, function(err, res) {
-				if (err) {
-					if (callback)
-						callback(err, null);
-					
-					return reject(null);
-				}
-				
-				self.balance = res;
 
-				if (callback)
-					callback(null, res);
-				
-				return resolve(res);
-			});
-		});
-		
-		return promise;*/
 	}
 
 	getCode(callback) {
@@ -155,27 +135,7 @@ var Account = class {
 			
 			return res;
 	    });
-	    
-	    /*var web3 = chainreadermodule.getWeb3Instance();
-		var promise = new Promise( function(resolve, reject) {
-			return web3.eth.getCode(accountaddr, function(err, res) {
-				if (err) {
-					if (callback)
-						callback(err, null);
-					
-					return reject(null);
-				}
-				
-				self.code = res;
 
-				if (callback)
-					callback(null, res);
-				
-				return resolve(res);
-			});
-		});
-		
-		return promise;*/
 	}
 	
 	// static

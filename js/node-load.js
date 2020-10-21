@@ -1,6 +1,6 @@
 'use strict';
 
-console.log('react-native-load.js');
+console.log('node-load.js');
 
 
 class NodeLoad {
@@ -83,6 +83,10 @@ class NodeLoad {
 			GlobalClass = _globalscope.simplestore.Global;
 			
 			// initialize in _globalscope
+
+			// standard libraries
+			var XMLHttpRequest = _noderequire('xmlhttprequest').XMLHttpRequest;
+			_globalscope.simplestore.XMLHttpRequest = XMLHttpRequest;
 			
 			// libraries loading without exception, but replaced by node modules
 			var keythereum = _noderequire('keythereum');

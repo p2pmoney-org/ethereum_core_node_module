@@ -158,7 +158,10 @@ var NodeClientStorage = class {
 			var jsonstring = JSON.stringify(value);
 			
 			// create directory if it not exists
-			mkdirp(storagedir, function (err) {
+
+			// note: mkdirp version =< 0.5.1 works with callbak
+			// version >= 1.0.0 only works returning a promise
+			/*mkdirp(storagedir, function (err) {
 			    if (err) {
 			    	error = err;
 			    	
@@ -175,6 +178,23 @@ var NodeClientStorage = class {
 					});
 			    }
 
+			 });*/
+
+			 mkdirp(storagedir)
+			 .then(function (res) {
+					// then write file
+			    	fs.writeFile(jsonPath, jsonstring, 'utf8', function() {
+						bSuccess = true;
+					
+						if (callback)
+							callback(null, bSuccess);
+					});
+			 })
+			 .catch(function (err) {
+				if (callback)
+					callback(err, false);
+
+				return;
 			 });
 
 			

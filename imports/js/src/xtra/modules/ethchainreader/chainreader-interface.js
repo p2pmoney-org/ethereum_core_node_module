@@ -25,13 +25,13 @@ var ChainReaderInterface = class {
 	getAccount(address, callback) {
 		var Account = this.module.getAccountClass();
 		
-		Account.getAccount(this.session, address, callback);
+		return Account.getAccount(this.session, address, callback);
 	}
 	
 	getContract(address, callback) {
 		var Contract = this.module.getContractClass();
 		
-		Contract.getContract(this.session, address, callback);
+		return Contract.getContract(this.session, address, callback);
 	}
 	
 	getContractName(address, callback) {
@@ -49,7 +49,7 @@ var ChainReaderInterface = class {
 	getBlock(blocknumber, callback) {
 		var Block = this.module.getBlockClass();
 		
-		Block.getBlock(this.session, blocknumber, callback);
+		return Block.getBlock(this.session, blocknumber, callback);
 	}
 	
 	getCurrentBlockNumber(callback) {
@@ -67,20 +67,23 @@ var ChainReaderInterface = class {
 	getTransaction(txhash, callback) {
 		var Transaction = this.module.getTransactionClass();
 		
-		Transaction.getTransaction(this.session, txhash, callback);
+		return Transaction.getTransaction(this.session, txhash, callback);
 	}
 	
 	getLatestTransactions(callback) {
 		var Block = this.module.getBlockClass();
+		var self = this;
 		
-		var promise = Block.getLatestBlock(this.session)
+		return Block.getLatestBlock(this.session)
 		.then(function(res) {
-			var block = res;
+			var blockdata = res;
+
+			var block = new Block(self.session, blockdata.number);
+			
+			block._setData(blockdata);
 			
 			return block.getTransactions(callback);
 		});
-		
-		return promise;
 	}
 	
 }

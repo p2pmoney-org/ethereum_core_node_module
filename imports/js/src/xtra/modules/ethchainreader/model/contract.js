@@ -51,7 +51,7 @@ var Contract = class {
 	getAccount() {
 		return this.account;
 	}
-	
+
 	getAbi() {
 		return this.abi;
 	}
@@ -84,28 +84,50 @@ var Contract = class {
 		return abidef;
 	}
 	
+	// async
+	getName(callback) {
+		return Contract.getContractName(this.session, this.address, callback);
+	}
+	
 	dynamicMethodCall(abidef, params, callback) {
+		var self = this;
+
 		var promise = this._getInstance()
 		.then(function(instance) {
 		    var global = Contract.getGlobalObject();
 		    var chainreadermodule = global.getModuleObject('ethchainreader');
 			
-		    var EthereumNodeAccess = chainreadermodule.getEthereumNodeAccess(this.session);
-		    
-		    return EthereumNodeAccess._web3_contract_dynamicMethodCall(instance, abidef, params, function (err, res) {
-				if (!res) {
-					if (callback)
-						callback('dynamic call returned null', null);
-					
-					return null;
-				}
-				
-				if (callback)
-					callback(null, res);
-				
-				return res;
-				
-			});		
+		    var EthereumNodeAccess = chainreadermodule.getEthereumNodeAccess(self.session);
+			
+			// need to call with a callback because _web3_contract_dynamicMethodCall was obsolete
+			// and promise was not correct at the time for local (2020.10.15)
+			// and remote returned only a promise
+		    return new Promise(function(resolve, reject) {
+				let handled = 0;
+
+				EthereumNodeAccess._web3_contract_dynamicMethodCall(instance, abidef, params, function(err, res) {
+					 if (err) {	handled = -1; reject(err); } else { handled = 1;resolve(res); }
+				})
+				.then(function(res) {
+					if (handled == 0) { handled = 1;resolve(res); }
+				})
+				.catch(function (err) {
+					 console.log('error: ' + err); // catch faulty promise rejection (2020.10.15)
+					 if (handled == 0) { handled = -1; reject(err); }
+				});	
+			});	
+		})
+		.then(function (res) {
+			if (callback)
+			callback(null, res);
+		
+			return res;
+		})
+		.catch(function (err) {
+			if (callback)
+				callback(err, null);
+
+			throw new Error(err);
 		});
 		
 		return promise;
@@ -138,7 +160,8 @@ var Contract = class {
 		
 		for (var i = 0; i < paramsnumber; i++) {
 			// parameters have to be in the right order
-			var param = methodparams[i].value;
+			//var param = methodparams[i].value;
+			var param = methodparams[i];
 			
 			params.push(param);
 		}
@@ -146,23 +169,25 @@ var Contract = class {
 		// make call
 		var promise = this.dynamicMethodCall(abidef, params)
 		.then(function (res) {
-			if (!res) {
-				if (callback)
-					callback('dynamic call returned null', null);
-				
-				return null;
-			}
-			
+
 			if (callback)
 				callback(null, res);
 			
 			return res;
+		})
+		.catch(function (err) {
+			if (callback)
+				callback(err, null);
+
+			throw new Error(err);
 		});
 		
 		return promise;
 	}
 	
 	callGetter(abimethod, callback) {
+		var self = this;
+
 		var promise = this._getInstance()
 		.then(function(instance) {
 			var constant = abimethod.constant;
@@ -175,23 +200,21 @@ var Contract = class {
 			
 			if (abimethod.type === "function" && abimethod.inputs.length === 0 && abimethod.constant) {
 				// simple gets
-				var promise2 = this.callReadMethod(name, []).then(function (err, res) {
-					if (err) {
-						if (callback)
-							callback(err, null);
-						
-						return null;
-					}
-					
-					if (callback)
-						callback(null, res);
-					
-					return resolve(res);
-				});
-				
-				return promise2;
-	          }		
+				return this.callReadMethod(name, []);
+			}	
 			
+		})
+		.then(function (res) {
+			if (callback)
+			callback(null, res);
+		
+			return res;
+		})
+		.catch(function (err) {
+			if (callback)
+				callback(err, null);
+
+			throw new Error(err);
 		});
 		
 		return promise;
@@ -221,15 +244,46 @@ var Contract = class {
 			var instance = res;
 	    	self.instance = instance;
 			
-			return Promise.resolve(instance);
-	    });
+			if (instance)
+				return instance;
+			else
+				throw new Error(err);
+		})
+		.then(function (res) {
+			if (callback)
+			callback(null, res);
+
+			return res;
+		})
+		.catch(function (err) {
+			if (callback)
+			callback(err, null);
+
+			throw new Error(err);
+		});
 	    
 	    return promise;
 	}
 
 	// static
-	static getContract(session, address) {
-		return new Contract(session, address);
+	static getContract(session, address, callback) {
+		var contract = new Contract(session, address);
+
+		var promise = Promise.resolve(contract)
+		.then( function(res){
+			if (callback)
+			callback(null, contract);
+
+			return contract;
+		})
+		.catch(function (err) {
+			if (callback)
+				callback(err, null);
+
+			throw new Error(err);
+		});
+
+		return promise;
 	}
 	
 	static getContractName(session, address, callback) {
@@ -238,12 +292,7 @@ var Contract = class {
 		
 		contract.setAbi(BASE_ABI);
 		
-		return contract.callReadMethod('contract_name', [], callback)
-		.catch(function(err) {
-		  console.log('error in Contract.getContractName: ' + err);
-		  
-		  return null;
-		});
+		return contract.callReadMethod('contract_name', [], callback);
 	}
 	
 	static getContractVersion(session, address, callback) {
@@ -252,12 +301,7 @@ var Contract = class {
 		
 		contract.setAbi(BASE_ABI);
 		
-		return contract.callReadMethod('contract_version', [], callback)
-		.catch(function(err) {
-		  console.log('error in Contract.getContractVersion: ' + err);
-		  
-		  return null;
-		});
+		return contract.callReadMethod('contract_version', [], callback);
 
 	}
 }

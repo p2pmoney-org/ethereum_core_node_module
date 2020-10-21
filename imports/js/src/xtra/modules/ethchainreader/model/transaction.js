@@ -94,6 +94,10 @@ var Transaction = class {
 		this.gasUsed = null;
 	
 	}
+
+	getData() {
+		return this.data;
+	}
 	
 	// async
 	_initObjects(blocknumber, sender_address, recipient_address, callback) {
@@ -295,23 +299,6 @@ var Transaction = class {
 			return res;
 			
 		})
-	    
-	    
-	    /*var web3 = chainreadermodule.getWeb3Instance();
-	    
-		var promise = new Promise( function(resolve, reject) {
-	    	return web3.eth.getTransaction(txhash, function(err, res) {
-				if (err) {
-					if (callback)
-						callback(err, null);
-					
-					return reject(null);
-				}
-				
-				return resolve(res);
-				
-			});
-		})*/
 		.then(function(res) {
 			var data = res;
 			
