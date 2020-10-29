@@ -45,9 +45,23 @@ ethereumjs.Util = require('ethereumjs-util');
 ethereumjs.Wallet = require('ethereumjs-wallet');
 ethereumjs.Tx = require('ethereumjs-tx');
 
+
+function _getBufferClass() {
+	if (typeof Buffer !== 'undefined')
+		return Buffer;
+	else if (typeof window !== 'undefined' && (typeof window.simplestore !== 'undefined') && (typeof window.simplestore.Buffer !== 'undefined'))
+		return window.simplestore.Buffer;
+	else if ((typeof global !== 'undefined') && (typeof global.simplestore !== 'undefined') && (typeof global.simplestore.Buffer !== 'undefined'))
+		return global.simplestore.Buffer;
+	else
+		throw 'can not find Buffer class!!!';
+}
+
+var _Buffer = _getBufferClass();
+
 ethereumjs.Buffer = {};
-ethereumjs.Buffer.Buffer = Buffer.from;
-ethereumjs.Buffer.Buffer.from = Buffer.from;
+ethereumjs.Buffer.Buffer = _Buffer.from;
+ethereumjs.Buffer.Buffer.from = _Buffer.from;
 
 window.simplestore.ethereumjs = ethereumjs;
 

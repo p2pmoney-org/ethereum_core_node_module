@@ -1,6 +1,6 @@
 {
   "name": "@p2pmoney-org/ethereum_core",
-  "version": "0.14.8",
+  "version": "0.14.9",
   "author": "P2PMoney.org",
   "homepage": "http://www.p2pmoney.org/",
   "license": "MIT",
@@ -15,6 +15,7 @@
   "dependencies": {
     "bitcore": "^0.11.7",
     "bitcore-ecies": "^0.9.2",
+    "bitcoin-encrypt": "^1.0.2",
     "ethereum.js": "^0.2.4",
     "ethereumjs-common": "^0.5.0",
     "ethereumjs-tx": "^1.3.7",
@@ -25,7 +26,9 @@
     "keythereum": "^1.0.4",
     "web3": "1.0.0-beta.34",
     "@react-native-community/async-storage": "^1.6.2",
-    "xmlhttprequest": "^1.8.0"
+    "typedarray-to-buffer": "^3.1.5",
+    "xmlhttprequest": "^1.8.0",
+    "yaeti": "^1.0.2"
   },
   "devDependencies": {
     "typedarray-to-buffer": "^3.1.2",

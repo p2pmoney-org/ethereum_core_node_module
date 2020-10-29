@@ -108,9 +108,13 @@ class NodeLoad {
 			ethereumjs.Wallet = _noderequire('ethereumjs-wallet');
 			ethereumjs.Tx = _noderequire('ethereumjs-tx');
 
+			const _Buffer = Buffer;
+			//const _Buffer = require('buffer').Buffer;
+			_globalscope.simplestore.Buffer = _Buffer;
+			
 			ethereumjs.Buffer = {};
-			ethereumjs.Buffer.Buffer = Buffer.from;
-			ethereumjs.Buffer.Buffer.from = Buffer.from;
+			ethereumjs.Buffer.Buffer = _Buffer.from;
+			ethereumjs.Buffer.Buffer.from = _Buffer.from;
 			
 			_globalscope.simplestore.ethereumjs = ethereumjs;
 			
@@ -197,11 +201,68 @@ class NodeLoad {
 			//  finalize initialization
 			_nodeobject.finalizeGlobalScopeInit(function(res) {
 				console.log("node-load finished initialization of GlobalScope");
+
+				// we call directly postFinalizeGlobalScopeInit because we are not a module
+				self.postFinalizeGlobalScopeInit();
 				
 				if (callback)
 					callback(null, self);
 			});
 		});
+
+	}
+
+
+	postFinalizeGlobalScopeInit() {
+		// we are not using global object hooks because we are not a module
+		console.log('NodeLoad.postFinalizeGlobalScopeInit called');
+
+		var _globalscope = global; // nodejs global
+		var _noderequire = require; // to avoid problems when react-native processes files
+
+		try {
+			// overload rsaEncryptString and rsaDecryptString because bitcore-ecies 0.9.2
+			// is generating a ERR_OUT_OF_RANGE at checkInt (internal/buffer.js:35:11)
+			var CryptoKeyEncryption= _globalscope.simplestore.CryptoKeyEncryption;
+
+			CryptoKeyEncryption.prototype.rsaEncryptString = function (plaintext, recipientcryptokey) {
+				console.log('OVERLOADED CryptoKeyEncryption.rsaEncryptString called for ' + plaintext);
+
+				const { encrypt } = _noderequire('bitcoin-encrypt');
+				
+				const sender_private_key = this.cryptokey.private_key.split('x')[1];
+				var recipient_rsa_public_key = recipientcryptokey.getRsaPublicKey().split('x')[1];
+
+				var encrypted = '0x' + encrypt(recipient_rsa_public_key, sender_private_key, plaintext).toString('hex');
+
+				return encrypted;
+			};
+
+			CryptoKeyEncryption.prototype.rsaDecryptString = function (cyphertext, sendercryptokey) {
+				console.log('OVERLOADED CryptoKeyEncryption.rsaDecryptString called for ' + cyphertext);
+
+				const { decrypt } = _noderequire('bitcoin-encrypt');
+				var ethereumjs = this.getEthereumJsClass();
+				
+				var hexcypertext = cyphertext.substring(2);
+		
+				if (hexcypertext.length == 0)
+					return '';
+
+				const sender_rsa_public_key = sendercryptokey.getRsaPublicKey().split('x')[1];
+				var recipient_private_key = this.cryptokey.private_key.split('x')[1];
+
+				var cypherbuf = ethereumjs.Buffer.Buffer(hexcypertext, 'hex');
+
+				var plaintext = decrypt(sender_rsa_public_key, recipient_private_key, cypherbuf).toString('utf8');
+
+				return plaintext;
+			};
+
+		}
+		catch(e) {
+
+		}
 
 	}
 		

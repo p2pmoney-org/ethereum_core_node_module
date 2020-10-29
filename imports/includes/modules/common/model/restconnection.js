@@ -42,7 +42,7 @@ var RestConnection = class {
 	}
 	
 	_setRequestHeader(xhttp) {
-		xhttp.setRequestHeader("Content-type", "application/json");
+		xhttp.setRequestHeader("Content-Type", "application/json"); // note: XMLHttpRequest in nodejs requires exact case
 		xhttp.setRequestHeader("sessiontoken", this.session.getSessionUUID());
 		
 		for (var key in this.header) {

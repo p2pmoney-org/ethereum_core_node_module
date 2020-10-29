@@ -49,8 +49,11 @@ var Transaction = class {
 		
 		if (data == null)
 			return;
+
+		var Transaction = this.getClass();
 		
-	    var global = Transaction.getGlobalObject();
+		var session = this.session;
+		var global = session.getGlobalObject();
 	    var chainreadermodule = global.getModuleObject('ethchainreader');
 	    var Account = chainreadermodule.getAccountClass();
 	    
@@ -101,7 +104,10 @@ var Transaction = class {
 	
 	// async
 	_initObjects(blocknumber, sender_address, recipient_address, callback) {
-	    var global = Transaction.getGlobalObject();
+		var Transaction = this.getClass();
+		
+		var session = this.session;
+		var global = session.getGlobalObject();
 	    var chainreadermodule = global.getModuleObject('ethchainreader');
 	    var Account = chainreadermodule.getAccountClass();
 	    var Block = chainreadermodule.getBlockClass();
@@ -188,7 +194,8 @@ var Transaction = class {
 		var txhash = this.hash;
 		var self = this;
 		
-	    var global = Transaction.getGlobalObject();
+		var session = this.session;
+		var global = session.getGlobalObject();
 	    var chainreadermodule = global.getModuleObject('ethchainreader');
 	    var Block = chainreadermodule.getBlockClass();
 	    
@@ -243,6 +250,13 @@ var Transaction = class {
 	
 	// static
 	static _createTransactionObject(session, data, callback) {
+		if (!session)
+			return Promise.reject('no session passed in argument');
+
+		var global = session.getGlobalObject();
+		var ethchainreadermodule = global.getModuleObject('ethchainreader');
+		var Transaction = ethchainreadermodule.Transaction;
+
 		var transaction = new Transaction(session);
 
 		var blocknumber = data['blockNumber']
@@ -281,11 +295,10 @@ var Transaction = class {
 	}
 	
 	static getTransaction(session, txhash, callback) {
-		var Transaction = this.getClass();
-		
-	    var global = Transaction.getGlobalObject();
+	    var global = session.getGlobalObject();
 	    var chainreadermodule = global.getModuleObject('ethchainreader');
 	    var Block = chainreadermodule.getBlockClass();
+	    var Transaction = chainreadermodule.getTransactionClass();
 	    var EthereumNodeAccess = chainreadermodule.getEthereumNodeAccess(session);
 	    
 	    var promise = EthereumNodeAccess.web3_getTransaction(txhash, function(err, res) {
@@ -335,13 +348,12 @@ var Transaction = class {
 	}
 	
 	static getTransactionsFromJsonArray(session, jsonarray, callback) {
-		var Transaction = this.getClass();
-		
-	    var global = Transaction.getGlobalObject();
+	    var global = session.getGlobalObject();
 	    var chainreadermodule = global.getModuleObject('ethchainreader');
 
 	    var Account = chainreadermodule.getAccountClass();
 	    var Block = chainreadermodule.getBlockClass();
+		var Transaction = chainreadermodule.getTransactionClass();
 
 	    var transactions = [];
 		

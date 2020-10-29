@@ -102,6 +102,51 @@ class ReactNativeLoad {
 			rootscriptloader.registerEventListener('on_dapps_module_load_end', function(eventname) {
 				console.log('ReactNativeLoad: dapps module has been loaded');
 			});
+
+			// fix Buffer
+			if (!_globalscope.simplestore.Buffer) {
+				//
+				// Fix process
+				//
+				if (typeof process === 'undefined') {
+					_globalscope.process = require('process');
+					_globalscope.simplestore.process = _globalscope.process;
+				} else {
+					const bProcess = require('process');
+					for (var p in bProcess) {
+						if (!(p in process)) {
+							process[p] = bProcess[p]
+						}
+					}
+				}
+
+				//
+				// Fix Buffer
+				//
+				process.browser = false
+				if (typeof Buffer === 'undefined') {
+					_globalscope.Buffer = require('buffer').Buffer
+					_globalscope.simplestore.Buffer = _globalscope.Buffer;
+				}
+
+				//
+				// Fix btoa and atob
+				//
+				if (typeof btoa === 'undefined') {
+					_globalscope.btoa = function (str) {
+						return new Buffer(str, 'binary').toString('base64');
+					};
+					_globalscope.simplestore.btoa = _globalscope.btoa;
+				}
+
+				if (typeof atob === 'undefined') {
+					_globalscope.atob = function (b64Encoded) {
+						return new Buffer(b64Encoded, 'base64').toString('binary');
+					};
+					_globalscope.simplestore.atob = _globalscope.atob;
+				}
+
+			}
 			
 
 			// xtra config

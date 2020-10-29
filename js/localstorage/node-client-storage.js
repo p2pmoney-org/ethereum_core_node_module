@@ -3,11 +3,38 @@
  */
 'use strict';
 
+var CacheStorage = class {
+	constructor() {
+		this.map = Object.create(null); // use a simple object to implement the map
+	}
+	
+	getKeyJson(key) {
+		if (key in this.map) {
+			return this.map[key];
+		} 
+	}
+	
+	updateJson(key, json) {
+		this.map[key] = json;
+	}
+	
+	count() {
+		return Object.keys(this.map).length;
+	}
+	
+	empty() {
+		this.map = Object.create(null);
+	}
+}
+
+
 var NodeClientStorage = class {
 	constructor() {
 		this.storage_dir = __dirname + '/../../storage'; // default
 		
 		this.ethereum_core = require('../../ethereum_core.js').getObject();
+		
+		this.storagemap = new CacheStorage(); // use cache to answer synchronously to readClientJson
 	}
 	
 	getStorageDir() {
@@ -88,6 +115,7 @@ var NodeClientStorage = class {
 		var fs = _noderequire('fs');
 		var path = _noderequire('path');
 
+
 		if (keystring.startsWith('shared-')) {
 			var storagedir = this._getFullDirPath('shared');
 			var jsonFileName = keystring.substring(7) + ".json";
@@ -98,29 +126,50 @@ var NodeClientStorage = class {
 		}
 
 		var jsonPath;
-		var jsonFile;
+		var jsonstring;
 		
 		var jsoncontent;
 		var error = null;
 		
 		try {
 			jsonPath = path.join(storagedir, jsonFileName);
-	
-	
-			jsonFile = fs.readFileSync(jsonPath, 'utf8');
-			jsoncontent = JSON.parse(jsonFile);
+
+			jsonstring = fs.readFileSync(jsonPath, 'utf8');
+			jsoncontent = JSON.parse(jsonstring);
+
+			// put in cache
+			if (jsonstring)
+			this.storagemap.updateJson(keystring, jsonstring);
+
+			if (callback)
+				callback(null, jsoncontent);
+
+			return;
 	
 		}
 		catch(e) {
 			error = 'exception in NodeClientStorage.readClientSideJson: ' + e.message;
-			console.log(error); 
+			console.log(error);
 		}
 		
-		if (callback)
-			callback(error, jsoncontent)
+		// look in the cache
+		var entrystring = this.storagemap.getKeyJson(keystring);
+
+		if (entrystring) {
+			// answer from cache if file is being saved
+			// but not on the disk yet
+			var entryjson = (entrystring ? JSON.parse(entrystring) : null);
+
+			if (callback)
+				callback(null, entryjson);
 		
+			return entryjson;
+		}
+		else {
+			if (callback)
+				callback(error, null);
+		}
 		
-		return jsoncontent;
 	}
 	
 	saveClientSideJson(session, keystring, value, callback) {
@@ -156,6 +205,13 @@ var NodeClientStorage = class {
 			jsonPath = path.join(storagedir, jsonFileName);
 		
 			var jsonstring = JSON.stringify(value);
+
+			// nota: we put in cache early to let
+			// readClientSideJson answer with this value
+			// even before it is confirmed that the item
+			// is in FileSystem
+			this.storagemap.updateJson(keystring, jsonstring);
+
 			
 			// create directory if it not exists
 
@@ -180,15 +236,26 @@ var NodeClientStorage = class {
 
 			 });*/
 
-			 mkdirp(storagedir)
+			 var savepromise = mkdirp(storagedir)
 			 .then(function (res) {
 					// then write file
-			    	fs.writeFile(jsonPath, jsonstring, 'utf8', function() {
-						bSuccess = true;
-					
-						if (callback)
-							callback(null, bSuccess);
+
+					return new Promise((resolve, reject) => {
+						fs.writeFile(jsonPath, jsonstring, 'utf8', function(err) {
+							if (err) reject(err); else resolve(true);
+						});
+
+						resolve(true);
 					});
+			 });
+
+			 
+			 savepromise.then(function (res) {
+				bSuccess = res;
+					
+				if (callback)
+					callback(null, bSuccess);
+
 			 })
 			 .catch(function (err) {
 				if (callback)
