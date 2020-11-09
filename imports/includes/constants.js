@@ -70,5 +70,7 @@ class Constants {
 //export
 if ( typeof window !== 'undefined' && window ) // if we are in browser and not node js (e.g. truffle)
 window.simplestore.Constants = Constants;
-else
-module.exports = Constants; // we are in node js
+else if (typeof global !== 'undefined') {
+	// we are in node js
+	global.simplestore.Constants = Constants;
+}

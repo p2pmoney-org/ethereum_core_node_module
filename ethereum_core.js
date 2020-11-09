@@ -14,6 +14,11 @@ class Ethereum_core {
 		this.artifactmap = Object.create(null);
 	}
 	
+	getVersion() {
+		var packagejson = require('./package.json');
+		return packagejson.version;
+	}
+	
 	async init(callback) {
 		console.log('@p2pmoney-org/ethereum_core init called');
 		
