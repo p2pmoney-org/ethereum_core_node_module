@@ -76,6 +76,11 @@ var Module = class {
 		console.log('instantiating a EthereumNodeAccess instance');
 		
 		var global = this.global;
+		var EthereumNodeAccessClass = global.getModuleClass('ethereum-node-access', 'EthereumNodeAccess');
+		//var _globalscope = global.getExecutionGlobalScope();
+
+		//var EthereumNodeAccessClass = (typeof EthereumNodeAccess !== 'undefined' ? EthereumNodeAccess : _globalscope.simplestore.EthereumNodeAccess);
+
 
 		var result = []; 
 		var inputparams = [];
@@ -83,7 +88,7 @@ var Module = class {
 		inputparams.push(this);
 		inputparams.push(session);
 		
-		result[0]= new EthereumNodeAccess(session);
+		result[0]= new EthereumNodeAccessClass(session);
 		
 		// call hook to let modify or replace instance
 		var ethereum_node_access_instance;
@@ -94,7 +99,7 @@ var Module = class {
 			ethereum_node_access_instance = result[0];
 		}
 		else {
-			ethereum_node_access_instance = new EthereumNodeAccess(session);
+			ethereum_node_access_instance = new EthereumNodeAccessClass(session);
 		}
 		
 		return ethereum_node_access_instance;
@@ -116,15 +121,24 @@ var Module = class {
 
 	
 	getArtifactProxyObject(artifactuuid, contractname, artifactpath, abi, bytecode) {
-		return new ArtifactProxy(artifactuuid, contractname, artifactpath, abi, bytecode);
+		var global = this.global;
+		var ArtifactProxyClass = global.getModuleClass('ethereum-node-access', 'ArtifactProxy');
+
+		return new ArtifactProxyClass(artifactuuid, contractname, artifactpath, abi, bytecode);
 	}
 	
 	getContractProxyObject(contractuuid, artifact) {
-		return new ContractProxy(contractuuid, artifact);
+		var global = this.global;
+		var ContractProxyClass = global.getModuleClass('ethereum-node-access', 'ContractProxy');
+
+		return new ContractProxyClass(contractuuid, artifact);
 	}
 	
 	getContractInstanceProxyObject(contractinstanceuuid, address, contract) {
-		return new ContractInstanceProxy(contractinstanceuuid, address, contract);
+		var global = this.global;
+		var ContractInstanceProxyClass = global.getModuleClass('ethereum-node-access', 'ContractInstanceProxy');
+
+		return new ContractInstanceProxyClass(contractinstanceuuid, address, contract);
 	}
 	
 	//
@@ -256,19 +270,26 @@ var Module = class {
 
 	
 	getSolidityContractObject(session, abi) {
-		return new SolidityContract(session, abi);
+		var global = this.global;
+		var SolidityContractClass = global.getModuleClass('ethereum-node-access', 'SolidityContract');
+
+		return new SolidityContractClass(session, abi);
 	}
 	
 	
 	getEthereumTransactionObject(session, sendingaccount) {
-		return new EthereumTransaction(session, sendingaccount);
+		var global = this.global;
+		var EthereumTransactionClass = global.getModuleClass('ethereum-node-access', 'EthereumTransaction');
+
+		return new EthereumTransactionClass(session, sendingaccount);
 	}
 	
 	unstackEthereumTransactionObject(session, params) {
 		var global = this.global;
-		var _globalscope = global.getExecutionGlobalScope();
+		var EthereumTransactionClass = global.getModuleClass('ethereum-node-access', 'EthereumTransaction');
+		//var _globalscope = global.getExecutionGlobalScope();
 
-		var EthereumTransactionClass = (typeof EthereumTransaction !== 'undefined' ? EthereumTransaction : _globalscope.simplestore.EthereumTransaction);
+		//var EthereumTransactionClass = (typeof EthereumTransaction !== 'undefined' ? EthereumTransaction : _globalscope.simplestore.EthereumTransaction);
 		
 		let txjson = params[params.length - 1];
 		let args = params.slice(0,-1);
@@ -596,6 +617,7 @@ class EthereumTransaction {
 		this.transactionHash = null;
 		
 		this.sendingaccount = sendingaccount;
+		this.payingaccount = null;
 		
 		this.recipientaccount = null;
 		
@@ -641,14 +663,18 @@ class EthereumTransaction {
 	}
 	
 	getPayerAddress() {
-		if (this.payeraddress)
-			return this.payeraddress;
+		if (this.payingaccount)
+			return this.payingaccount.getAddress();
 		else
-			return this.getFromAddress();
+			return this.getFromAddress(); // sender is the payer by default
 	}
-	
-	setPayerAddress(address) {
-		this.payeraddress = address;
+
+	getPayingAccount() {
+		return this.payingaccount;
+	}
+
+	setPayingAccount(payingaccount) {
+		this.payingaccount = payingaccount; // needs an open account on a relay node
 	}
 	
 	getFromAddress() {
@@ -801,6 +827,41 @@ class EthereumTransaction {
 
 		return txjson;
 	}
+
+	_getTransactionNonce(session, address, callback) {
+		var EthereumNodeAccess = this._getEthereumNodeAccessInstance();
+		var self = this;
+
+		return new Promise(function (resolve, reject) {
+			// look in session to handle multiple transactions within a block
+			var _tx_nonce = session.getSessionVariable('tx-nonce-' + address);
+
+			if (_tx_nonce) {
+				resolve(_tx_nonce);
+			}
+			else {
+				// if none, look at transaction count to initialize value
+				var web3 = self._getWeb3Instance();
+				
+				return web3.eth.getTransactionCount(address, 'pending', function (err, count) {
+					if (err) reject(err); else resolve(count);
+				});
+			}
+			
+		})
+		.then(count => {
+			session.setSessionVariable('tx-nonce-' + address, count + 1);
+
+			if (callback)
+			callback(null, count);
+
+			return count;
+		})
+		.catch(err => {
+			if (callback)
+			callback(err, null);
+		});
+	}
 	
 	getRawData(callback) {
 		var self = this;
@@ -809,7 +870,7 @@ class EthereumTransaction {
 		var ethnodemodule = global.getModuleObject('ethnode');
 		
 		var web3 = this._getWeb3Instance();
-		var fromaccount = this.sendingaccount;
+		var fromaccount = this.sendingaccount;  // tx is signed by sending account even if not final payer
 		var toaccount = this.recipientaccount;
 		
 		var amount = this.value;
@@ -829,15 +890,6 @@ class EthereumTransaction {
 
 		
 		if (fromaccount.canSignTransactions()) {
-			// signing the transaction
-			var ethereumjs = ethereumnodeaccessmodule.getEthereumJsClass(session);
-			
-			var hexprivkey = fromaccount.getPrivateKey();
-			
-			var privkey = hexprivkey.substring(2);
-			var bufprivkey = ethereumjs.Buffer.Buffer.from(privkey, 'hex');
-
-		    
 		    // signing
 			if (this.web3_version == "1.0.x") {
 				// Web3 > 1.0
@@ -860,20 +912,27 @@ class EthereumTransaction {
 			    
 			}
 			
-			var tx = new ethereumjs.Tx(txjson);
-			
-		    
 		    //return web3.eth.getTransactionCount(fromaddress, function (err, count) {
-		    return EthereumNodeAccess.web3_getTransactionCount(fromaddress, function (err, count) {
+		    //return EthereumNodeAccess.web3_getTransactionCount(fromaddress, function (err, count) {
+			return this._getTransactionNonce(session, fromaddress, function (err, count) {
 		    	
 		    	if (!err) {
 			    	txjson.nonce = (nonce ? nonce : count);
 			    	
+					// creating and signing a transaction from fromaccount
+					var ethereumjs = ethereumnodeaccessmodule.getEthereumJsClass(session);
+					
 					var tx = new ethereumjs.Tx(txjson);
 					
+					var hexprivkey = fromaccount.getPrivateKey();
+					
+					var privkey = hexprivkey.substring(2);
+					var bufprivkey = ethereumjs.Buffer.Buffer.from(privkey, 'hex');
+		    
 					tx.sign(bufprivkey);
 
-				    var raw = '0x' + tx.serialize().toString('hex');
+					// construct raw data
+					var raw = '0x' + tx.serialize().toString('hex');
 				    
 				    if (callback)
 				    	callback(null, raw);
@@ -2550,18 +2609,46 @@ if ( typeof window !== 'undefined' && window ) {
 	global.simplestore.EthereumTransaction = EthereumTransaction;
 }
 
-if ( typeof GlobalClass !== 'undefined' && GlobalClass )
-GlobalClass.getGlobalObject().registerModuleObject(new Module());
+if ( typeof GlobalClass !== 'undefined' && GlobalClass ){
+	GlobalClass.getGlobalObject().registerModuleObject(new Module());
+
+	GlobalClass.registerModuleClass('ethereum-node-access', 'EthereumNodeAccess', EthereumNodeAccess);
+	GlobalClass.registerModuleClass('ethereum-node-access', 'EthereumTransaction', EthereumTransaction);
+
+	GlobalClass.registerModuleClass('ethereum-node-access', 'ArtifactProxy', ArtifactProxy);
+	GlobalClass.registerModuleClass('ethereum-node-access', 'ContractProxy', ContractProxy);
+	GlobalClass.registerModuleClass('ethereum-node-access', 'ContractInstanceProxy', ContractInstanceProxy);
+
+	GlobalClass.registerModuleClass('ethereum-node-access', 'SolidityContract', SolidityContract);
+}
 else if (typeof window !== 'undefined') {
 	let _GlobalClass = ( window && window.simplestore && window.simplestore.Global ? window.simplestore.Global : null);
 	
 	_GlobalClass.getGlobalObject().registerModuleObject(new Module());
+
+	_GlobalClass.registerModuleClass('ethereum-node-access', 'EthereumNodeAccess', EthereumNodeAccess);
+	_GlobalClass.registerModuleClass('ethereum-node-access', 'EthereumTransaction', EthereumTransaction);
+
+	_GlobalClass.registerModuleClass('ethereum-node-access', 'ArtifactProxy', ArtifactProxy);
+	_GlobalClass.registerModuleClass('ethereum-node-access', 'ContractProxy', ContractProxy);
+	_GlobalClass.registerModuleClass('ethereum-node-access', 'ContractInstanceProxy', ContractInstanceProxy);
+
+	_GlobalClass.registerModuleClass('ethereum-node-access', 'SolidityContract', SolidityContract);
 }
 else if (typeof global !== 'undefined') {
 	// we are in node js
 	let _GlobalClass = ( global && global.simplestore && global.simplestore.Global ? global.simplestore.Global : null);
 	
 	_GlobalClass.getGlobalObject().registerModuleObject(new Module());
+
+	_GlobalClass.registerModuleClass('ethereum-node-access', 'EthereumNodeAccess', EthereumNodeAccess);
+	_GlobalClass.registerModuleClass('ethereum-node-access', 'EthereumTransaction', EthereumTransaction);
+
+	_GlobalClass.registerModuleClass('ethereum-node-access', 'ArtifactProxy', ArtifactProxy);
+	_GlobalClass.registerModuleClass('ethereum-node-access', 'ContractProxy', ContractProxy);
+	_GlobalClass.registerModuleClass('ethereum-node-access', 'ContractInstanceProxy', ContractInstanceProxy);
+
+	_GlobalClass.registerModuleClass('ethereum-node-access', 'SolidityContract', SolidityContract);
 }
 	
 

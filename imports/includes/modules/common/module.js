@@ -3,7 +3,7 @@
 var Module = class {
 	constructor() {
 		this.name = 'common';
-		this.current_version = "0.20.0.2020.11.12";
+		this.current_version = "0.20.5.2020.01.15";
 		
 		this.global = null; // put by global on registration
 		this.isready = false;
@@ -83,7 +83,32 @@ var Module = class {
 		
 		var global = this.global;
 		
+		global.registerHook('getVersionInfo_hook', this.name, this.getVersionInfo_hook);
 	}
+
+	//
+	// hooks
+	//
+	getVersionInfo_hook(result, params) {
+		console.log('getVersionInfo_hook called for ' + this.name);
+		
+		var global = this.global;
+		
+		var versioninfos = params[0];
+		
+		var versioninfo = {};
+		
+		versioninfo.label = global.t('ethereum core');
+		versioninfo.value = this.current_version;
+
+		versioninfos.push(versioninfo);
+
+		
+		result.push({module: this.name, handled: true});
+		
+		return true;
+	}
+	
 	
 	//
 	// control

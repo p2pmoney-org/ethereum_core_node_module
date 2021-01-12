@@ -71,6 +71,8 @@ var ContractTransaction = class {
 		this.ethereumtransaction.setGasPrice(gasPrice);
 		this.ethereumtransaction.setData(data);
 		this.ethereumtransaction.setNonce(nonce);
+
+		this.ethereumtransaction.setPayingAccount(this.payingaccount);
 		
 
 		return this.ethereumtransaction ;
@@ -99,6 +101,8 @@ var ContractTransaction = class {
 	getFromAccount() {
 		if (!this.fromaccount)
 			return this.payingaccount;
+		else
+			return this.fromaccount
 	}
 	
 	setFromAccount(fromaccount) {
@@ -112,7 +116,7 @@ var ContractTransaction = class {
 	}
 	
 	setToAccount(toaccount) {
-		return this.toaccount;
+		this.toaccount = toaccount;
 	}
 	
 	getValue() {
