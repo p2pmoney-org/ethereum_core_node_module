@@ -252,7 +252,7 @@ var BrowserClientStorage = class {
 	
 	// ethereum_core storage access
 	_getJQueryClass() {
-		typeof window !== 'undefined' && window
+		//typeof window !== 'undefined' && window
 		if (typeof $ !== 'undefined')
 			return $;
 		else if (typeof window !== 'undefined' && window && (typeof window.simplestore !== 'undefined'))

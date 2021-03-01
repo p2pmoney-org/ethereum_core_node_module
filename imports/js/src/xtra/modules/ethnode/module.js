@@ -233,7 +233,7 @@ var Module = class {
 			if (callback) {
 				// if callback provided, we make sure to initialize ethereumnodeaccessinstance
 				// with the new url to avoid concurrency problems
-				var ethereumnodeaccessinstance = this.getEthereumNodeAccessInstance(session);
+				var ethereumnodeaccessinstance = this.getEthereumNodeAccessInstance(session, url);
 				
 				ethereumnodeaccessinstance.web3_setProviderUrl(url, (err, res) => {
 					var web3provider = this.getWeb3ProviderObject(session, url);

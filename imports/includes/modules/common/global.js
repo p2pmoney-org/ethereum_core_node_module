@@ -877,6 +877,30 @@ class Global {
 		return this.getModuleObject(modulename)[classname]
 	}
 
+	getGlobalStore() {
+		var _globalscope = this.getExecutionGlobalScope();
+
+		if (_globalscope.simplestore === undefined) {
+			console.log('creating _globalscope.simplestore in getGlobalStore of globaljs');
+			_globalscope.simplestore = {};
+		}
+
+		return _globalscope.simplestore;
+	}
+
+	getGlobalStoredObject(key) {
+		if (!key)
+			return;
+
+		var _simplestore = this.getGlobalStore();
+
+		return _simplestore[key];
+	}
+
+	putGlobalStoredObject(key, value) {
+		var _simplestore = this.getGlobalStore();
+		_simplestore[key] = value;
+	}
 	
 	// static functions
 	static getGlobalObject() {

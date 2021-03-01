@@ -642,6 +642,8 @@ class EthereumTransaction {
 		
 		this.ethereumnodeaccessmodule = ethereumnodeaccessmodule;
 		this.web3_version = ethereumnodeaccessmodule.web3_version;
+
+		this.ethereumnodeaccessinstance = null;
 		
 		this.web3 = null;
 	}
@@ -776,12 +778,22 @@ class EthereumTransaction {
 	}
 	
 	_getEthereumNodeAccessInstance() {
+		if (this.ethereumnodeaccessinstance)
+			return this.ethereumnodeaccessinstance;
+
 		var session = this.session;
 		var global = session.getGlobalObject();
 		var ethnodemodule = global.getModuleObject('ethnode');
 		var web3providerurl = this.web3providerurl;
 
-		return ethnodemodule.getEthereumNodeAccessInstance(session, web3providerurl);	
+		// pick the instance in the session
+		this.ethereumnodeaccessinstance = ethnodemodule.getEthereumNodeAccessInstance(session, web3providerurl);
+		
+		return this.ethereumnodeaccessinstance;
+	}
+
+	_setEthereumNodeAccessInstance(ethereumnodeaccessinstance) {
+		this.ethereumnodeaccessinstance = ethereumnodeaccessinstance;
 	}
 	
 	getTxJson() {
@@ -832,20 +844,36 @@ class EthereumTransaction {
 		var EthereumNodeAccess = this._getEthereumNodeAccessInstance();
 		var self = this;
 
+		// return nonce if it has been pre-filled
+		if (this.nonce !== undefined) {
+			var fromaddress = this.getFromAddress();
+			if (fromaddress && address && (fromaddress == address))
+				return this.nonce;
+		}
+
 		return new Promise(function (resolve, reject) {
 			// look in session to handle multiple transactions within a block
 			var _tx_nonce = session.getSessionVariable('tx-nonce-' + address);
 
-			if (_tx_nonce) {
+			if (_tx_nonce !== undefined) {
+				self.nonce = _tx_nonce;
 				resolve(_tx_nonce);
 			}
 			else {
 				// if none, look at transaction count to initialize value
-				var web3 = self._getWeb3Instance();
+				if (EthereumNodeAccess) {
+					return EthereumNodeAccess.web3_getTransactionCount(address, 'pending', function (err, count) {
+						if (err) reject(err); else resolve(count);
+					});
+				}
+				else {
+					// note: will necessarily use local access
+					var web3 = self._getWeb3Instance();
 				
-				return web3.eth.getTransactionCount(address, 'pending', function (err, count) {
-					if (err) reject(err); else resolve(count);
-				});
+					return web3.eth.getTransactionCount(address, 'pending', function (err, count) {
+						if (err) reject(err); else resolve(count);
+					});
+				}
 			}
 			
 		})
@@ -1700,28 +1728,50 @@ class EthereumNodeAccess {
 		return promise;
 	}
 
-	web3_getTransactionCount(fromaddress, callback) {
+	web3_getTransactionCount(fromaddress, defaultBlock, callback) {
 		var self = this
 		var session = this.session;
+
+		if (typeof defaultBlock == 'function') {
+			callback = defaultBlock;
+			defaultBlock = null;
+		}
 
 		var promise = new Promise(function (resolve, reject) {
 			try {
 				var web3 = self._getWeb3Instance();
 				
-				return web3.eth.getTransactionCount(fromaddress, function(err, res) {
-					if (!err) {
-						if (callback)
-							callback(null, res);
-						return resolve(res);
-					}
-					else {
-						if (callback)
-							callback('web3 error: ' + err, null);
-						
-						reject('web3 error: ' + err);
-					}
+				if (defaultBlock) {
+					return web3.eth.getTransactionCount(fromaddress, defaultBlock, function(err, res) {
+						if (!err) {
+							if (callback)
+								callback(null, res);
+							return resolve(res);
+						}
+						else {
+							if (callback)
+								callback('web3 error: ' + err, null);
+							
+							reject('web3 error: ' + err);
+						}
+					});
+				}
+				else {
+					return web3.eth.getTransactionCount(fromaddress, function(err, res) {
+						if (!err) {
+							if (callback)
+								callback(null, res);
+							return resolve(res);
+						}
+						else {
+							if (callback)
+								callback('web3 error: ' + err, null);
+							
+							reject('web3 error: ' + err);
+						}
+					});
+				}
 				
-				});
 			}
 			catch(e) {
 				if (callback)
@@ -1945,7 +1995,7 @@ class EthereumNodeAccess {
 	
 	// contracts
 	_getJQueryClass() {
-		typeof window !== 'undefined' && window
+		//typeof window !== 'undefined' && window
 		if (typeof $ !== 'undefined')
 			return $;
 		else if (typeof window !== 'undefined' && window && (typeof window.simplestore !== 'undefined'))
