@@ -844,15 +844,15 @@ class EthereumTransaction {
 		var EthereumNodeAccess = this._getEthereumNodeAccessInstance();
 		var self = this;
 
-		// return nonce if it has been pre-filled
-		if (this.nonce !== undefined) {
-			var fromaddress = this.getFromAddress();
-			if (fromaddress && address && (fromaddress == address))
-				return this.nonce;
-		}
-
 		return new Promise(function (resolve, reject) {
-			// look in session to handle multiple transactions within a block
+			// return nonce if it has been pre-filled
+			if (self.nonce !== null) {
+				var fromaddress = self.getFromAddress();
+				if (fromaddress && address && (fromaddress == address))
+				resolve(self.nonce);
+			}
+
+			// else look in session to handle multiple transactions within a block
 			var _tx_nonce = session.getSessionVariable('tx-nonce-' + address);
 
 			if (_tx_nonce !== undefined) {

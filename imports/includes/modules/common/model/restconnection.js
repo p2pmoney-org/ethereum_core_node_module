@@ -88,19 +88,6 @@ var RestConnection = class {
 		return xhttp;
 	}
 
-	_safe_JSON_parse(responseText) {
-		var json = {};
-
-		try {
-			json = JSON.parse(responseText);
-		}
-		catch(e) {
-			console.log('could not parse response: ' + responseText);
-		}
-
-		return json;
-	}
-
 	_processResponseText(xhttp, callback) {
     	if (callback) {
 			var jsonresponse;

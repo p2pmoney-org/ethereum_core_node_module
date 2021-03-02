@@ -329,7 +329,11 @@ var Module = class {
 		// create a ethereum node access with the correct url
 		var ethereumnodeaccessinstance = ethereumnodeaccessmodule.createBlankEthereumNodeAccessInstance(session);
 		
-		ethereumnodeaccessinstance.web3_setProviderUrl(web3providerurl);
+		ethereumnodeaccessinstance.web3_setProviderUrl(web3providerurl)
+		.catch(err => {
+			console.log('promise rejection in Module.getEthereumNodeAccessInstance: ' + err);
+		});
+;
 		
 		// then create and store the provider
 		var web3provider = this.createWeb3ProviderObject(session, web3providerurl, ethereumnodeaccessinstance);
