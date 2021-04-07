@@ -758,7 +758,7 @@ class Global {
 		this.eventlisteners[eventname] = array;
 	}
 
-	signalEvent(eventname) {
+	signalEvent(eventname, params) {
 		console.log('signalEvent called for event ' + eventname);
 		
 		if ((eventname in this.eventlisteners) === false)
@@ -772,7 +772,7 @@ class Global {
 			
 			var listener = entry.listener;
 			
-			listener(eventname);
+			listener(eventname, params);
 		}
 	}
 	

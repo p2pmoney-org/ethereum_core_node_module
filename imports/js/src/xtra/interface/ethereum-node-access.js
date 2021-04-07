@@ -1922,14 +1922,18 @@ class EthereumNodeAccess {
 				    		// send signed
 							if (self.web3_version == "1.0.x") {
 								// Web3 > 1.0
-								var funcname = web3.eth.sendSignedTransaction;
+								return web3.eth.sendSignedTransaction(raw, __transactioncallback)
+								.catch(err => {
+									if (callback)
+										callback('web3 error: ' + err, null);
+								
+									reject('web3 error: ' + err);
+								});
 							}
 							else {
 								// Web3 == 0.20.x
-								var funcname = web3.eth.sendRawTransaction;
+								return web3.eth.sendRawTransaction(raw, __transactioncallback);
 							}
-							
-							return funcname(raw, __transactioncallback);
 				    	}
 				    	else {
 				    		__transactioncallback(err, null);
