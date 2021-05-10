@@ -229,6 +229,8 @@ var Contracts = class {
 		for(var i = 0; i < jsonarray.length; i++) {
 			var address = (jsonarray[i]['address'] ? jsonarray[i]['address'] : null);
 			var web3providerurl = (jsonarray[i]['web3providerurl'] ? jsonarray[i]['web3providerurl'] : null);
+			var chainid = (jsonarray[i]['chainid'] ? jsonarray[i]['chainid'] : null);
+			var networkid = (jsonarray[i]['networkid'] ? jsonarray[i]['networkid'] : null);
 			var contracttype = (jsonarray[i]['contracttype'] ? jsonarray[i]['contracttype'] : null);
 			
 			var contract;
@@ -243,6 +245,17 @@ var Contracts = class {
 				if (web3providerurl && contract.setWeb3ProviderUrl) {
 					contract.setWeb3ProviderUrl(web3providerurl);
 				}
+
+				// adding chainid (if it has been saved, was not in older versions)
+				if (chainid && contract.setChainId) {
+					contract.setChainId(chainid);
+				}
+
+				// adding networkid (if it has been saved, was not in older versions)
+				if (networkid && contract.setNetworkId) {
+					contract.setNetworkId(networkid);
+				}
+
 				
 				contract.initContract(jsonarray[i]);
 				this.addContractObject(contract);

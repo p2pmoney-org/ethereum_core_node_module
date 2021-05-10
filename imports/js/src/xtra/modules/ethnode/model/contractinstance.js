@@ -50,6 +50,12 @@ var ContractTransaction = class {
 			
 			var web3providerurl = contractinstance.getWeb3ProviderUrl();
 			this.ethereumtransaction.setWeb3ProviderUrl(web3providerurl);
+
+			var chainid = contractinstance.getChainId();
+			if (chainid) this.ethereumtransaction.setChainId(chainid);
+
+			var networkid = contractinstance.getNetworkId();
+			if (networkid) this.ethereumtransaction.setNetworkId(networkid);
 		}
 		
 		var txuuid = this.getContractTransactionUUID();
@@ -168,7 +174,10 @@ var ContractInstance = class {
 		
 		this.session = session;
 		this.address = contractaddress;
+
 		this.web3providerurl = web3providerurl;
+		this.chainid = null;
+		this.networkid = null;
 		
 		this.contractartifact = contractartifact;
 		
@@ -216,6 +225,22 @@ var ContractInstance = class {
 	
 	setWeb3ProviderUrl(url) {
 		this.web3providerurl = url;
+	}
+
+	getChainId() {
+		return this.chainid;
+	}
+
+	setChainId(chainid) {
+		this.chainid = chainid;
+	}
+
+	getNetworkId() {
+		return this.networkid;
+	}
+
+	setNetworkId(networkid) {
+		this.networkid = networkid;
 	}
 	
 	getEthereumNodeAccessInstance() {
@@ -328,7 +353,7 @@ var ContractInstance = class {
 			this.trufflecontractinstancepromise = this.loadtrufflecontractpromise.then(function(trufflecontract) {
 				console.log('ContractInstance._getTruffleContractObject load truffle contract resolved');
 				try {
-					console.log('ContractInstance._getTruffleContractObject calling trufflecontract.at()');
+					console.log('ContractInstance._getTruffleContractObject calling EthereumNodeAccess.truffle_contract_at()');
 					var trufflenewpromise = EthereumNodeAccess.truffle_contract_at(self.trufflecontract, self.address)
 					.then(function(res) {
 						if (res)
@@ -342,7 +367,7 @@ var ContractInstance = class {
 					return trufflenewpromise;
 				}
 				catch(e) {
-					console.log('ContractInstance._getTruffleContractObject exception in trufflecontract.at(): ' + e);
+					console.log('ContractInstance._getTruffleContractObject exception in EthereumNodeAccess.truffle_contract_at(): ' + e);
 					self.trufflecontractinstanceexists = false;
 					return Promise.resolve(null);
 				}

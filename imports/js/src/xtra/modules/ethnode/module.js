@@ -208,9 +208,24 @@ var Module = class {
 			web3provider = new this.Web3Provider(session, web3providerurl, ethereumnodeaccessinstance);
 		}
 
+		// if this is the default web3providerurl
+		var default_web3providerurl = this.global.globalscope.simplestore.Config.getWeb3ProviderUrl();
+
+		if (default_web3providerurl && (default_web3providerurl == web3providerurl )) {
+			// we set default chainid coming from Config (and possibly networkid, auth_basic,...)
+			if (this.global.globalscope.simplestore.Config.web3provider_chain_id)
+			web3provider.setVariable('chainid', this.global.globalscope.simplestore.Config.web3provider_chain_id);
+
+			if (this.global.globalscope.simplestore.Config.web3provider_network_id)
+			web3provider.setVariable('networkid', this.global.globalscope.simplestore.Config.web3provider_network_id);
+
+			if (this.global.globalscope.simplestore.Config.web3provider_auth_basic)
+			web3provider.setVariable('auth_basic', this.global.globalscope.simplestore.Config.web3provider_auth_basic);
+		}
+
 		return web3provider;
 	}
-	
+
 	getWeb3ProviderUrl(session) {
 		if ((session) && (session.web3providerurl))
 			return session.web3providerurl; // return session's value
@@ -317,26 +332,34 @@ var Module = class {
 		var global = session.getGlobalObject();
 		
 		var ethereumnodeaccessmodule = global.getModuleObject('ethereum-node-access');
+
+		var _web3providerurl = (web3providerurl ? web3providerurl : this.getWeb3ProviderUrl(session));
 		
-		if (!web3providerurl)
-		return ethereumnodeaccessmodule.getEthereumNodeAccessInstance(session); // returns default
-		
-		var web3provider = this.getWeb3ProviderObject(session, web3providerurl);
+		// look if we have a provider object encapsulating EthereumNodeAccessIntance
+		var web3provider = this.getWeb3ProviderObject(session, _web3providerurl);
 		
 		if (web3provider)
 			return web3provider.getEthereumNodeAccessInstance();
 		
 		// create a ethereum node access with the correct url
-		var ethereumnodeaccessinstance = ethereumnodeaccessmodule.createBlankEthereumNodeAccessInstance(session);
-		
-		ethereumnodeaccessinstance.web3_setProviderUrl(web3providerurl)
+		var ethereumnodeaccessinstance;
+	
+		if (!web3providerurl) {
+			// pick session's default
+			ethereumnodeaccessinstance = ethereumnodeaccessmodule.getEthereumNodeAccessInstance(session); 
+		}
+		else {
+			ethereumnodeaccessinstance = ethereumnodeaccessmodule.createBlankEthereumNodeAccessInstance(session);
+		}
+
+		// set web3providerurl
+		ethereumnodeaccessinstance.web3_setProviderUrl(_web3providerurl)
 		.catch(err => {
 			console.log('promise rejection in Module.getEthereumNodeAccessInstance: ' + err);
 		});
-;
 		
-		// then create and store the provider
-		var web3provider = this.createWeb3ProviderObject(session, web3providerurl, ethereumnodeaccessinstance);
+		// then create and store the provider object
+		var web3provider = this.createWeb3ProviderObject(session, _web3providerurl, ethereumnodeaccessinstance);
 		
 		this.putWeb3ProviderObject(session, web3provider)
 		

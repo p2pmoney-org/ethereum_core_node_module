@@ -148,7 +148,8 @@ _globalscope.simplestore.Config.defaultGasPrice = 100000000000;
  * _globalscope.simplestore.Config.web3provider_protocol = 'http://';
  * _globalscope.simplestore.Config.web3provider_host = 'localhost';
  * _globalscope.simplestore.Config.web3provider_port = 8545;
- * _globalscope.simplestore.Config.web3provider_network_id = '*' // Match any network id
+ * _globalscope.simplestore.Config.web3provider_chain_id = 1;
+ * _globalscope.simplestore.Config.web3provider_network_id = 1;
  * _globalscope.simplestore.Config.need_to_unlock_accounts = true; // do we need to unlock (e.g. on geth) or pass-through development client (e.g. Ganache)
  * _globalscope.simplestore.Config.wallet_account_challenge = true; 
  * _globalscope.simplestore.Config.wallet_account = '0x0000000000000000000000000000000000000001'; // your test account
@@ -159,7 +160,8 @@ _globalscope.simplestore.Config.defaultGasPrice = 100000000000;
 _globalscope.simplestore.Config.web3provider_protocol = 'http://';
 _globalscope.simplestore.Config.web3provider_host = 'localhost';
 _globalscope.simplestore.Config.web3provider_port = 9547;
-_globalscope.simplestore.Config.web3provider_network_id = '*' // Match any network id
+_globalscope.simplestore.Config.web3provider_chain_id = 1337;
+_globalscope.simplestore.Config.web3provider_network_id = 1337;
 _globalscope.simplestore.Config.need_to_unlock_accounts = false;
 _globalscope.simplestore.Config.wallet_account_challenge = true;
 //Ganache 1.0.1
@@ -173,16 +175,18 @@ _globalscope.simplestore.Config.wallet_account = '0xfFA2808E37954fF5042a98103068
 /*_globalscope.simplestore.Config.web3provider_protocol = 'http://';
 _globalscope.simplestore.Config.web3provider_host = 'localhost';
 _globalscope.simplestore.Config.web3provider_port = 8545;
-_globalscope.simplestore.Config.web3provider_network_id = '*' // Match any network id
+_globalscope.simplestore.Config.web3provider_chain_id = 1;
+_globalscope.simplestore.Config.web3provider_network_id = 1;
 _globalscope.simplestore.Config.need_to_unlock_accounts = true; 
 _globalscope.simplestore.Config.wallet_account_challenge = true; 
 _globalscope.simplestore.Config.wallet_account = 'your_test_account';*/
 
-// INFURA
+// INFURA Rinkeby
 /*_globalscope.simplestore.Config.web3provider_protocol = 'https://';
 _globalscope.simplestore.Config.web3provider_host = 'rinkeby.infura.io/v3/your_infura_key'
 _globalscope.simplestore.Config.web3provider_port = '';
-_globalscope.simplestore.Config.web3provider_network_id = '*' // Match any network id
+_globalscope.simplestore.Config.web3provider_chain_id = 4;
+_globalscope.simplestore.Config.web3provider_network_id = 4;
 _globalscope.simplestore.Config.need_to_unlock_accounts = true; 
 _globalscope.simplestore.Config.wallet_account_challenge = true; 
 _globalscope.simplestore.Config.wallet_account = 'your_test_account';*/

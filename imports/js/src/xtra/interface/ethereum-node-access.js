@@ -46,7 +46,10 @@ var Module = class {
 
 		if (_global.isInBrowser()) {
 			if (this.web3_version  == "1.0.x") {
-				modulescriptloader.push_script( moduleroot + '/web3.min-1.0.0-beta36.js');
+				// browserified node module
+				modulescriptloader.push_script( moduleroot + '/core-0.30.1-web3.min.js');
+
+				//modulescriptloader.push_script( moduleroot + '/web3.min-1.0.0-beta36.js');
 			}
 			else {
 				modulescriptloader.push_script( moduleroot + '/web3-0.20.3.js');
@@ -638,6 +641,9 @@ class EthereumTransaction {
 		
 		this.web3providerurl = null;
 
+		this.chainid = null;
+		this.networkid = null;
+		
 		var ethereumnodeaccessmodule = global.getModuleObject('ethereum-node-access');
 		
 		this.ethereumnodeaccessmodule = ethereumnodeaccessmodule;
@@ -700,7 +706,7 @@ class EthereumTransaction {
 		
 		this.recipientaccount = toaccount;
 	}
-	
+
 	getValue() {
 		return this.value;
 	}
@@ -764,6 +770,50 @@ class EthereumTransaction {
 		this.web3providerurl = url;
 	}
 	
+	getChainId() {
+		if (this.chainid)
+		return this.chainid;
+
+		// return default
+		var global = this.session.getGlobalObject();
+		var session = this.session;
+		var ethnodemodule = global.getModuleObject('ethnode');
+
+		var _web3providerurl = this.getWeb3ProviderUrl()
+
+		var _web3providerobject = ethnodemodule.getWeb3ProviderObject(session, _web3providerurl);
+
+		this.chainid = (_web3providerobject ? _web3providerobject.getVariable('chainid') : null);
+
+		return this.chainid;
+	}
+
+	setChainId(chainid) {
+		this.chainid = chainid;
+	}
+
+	getNetworkId() {
+		if (this.networkid)
+		return this.networkid;
+
+		// return default
+		var global = this.session.getGlobalObject();
+		var session = this.session;
+		var ethnodemodule = global.getModuleObject('ethnode');
+
+		var _web3providerurl = this.getWeb3ProviderUrl()
+
+		var _web3providerobject = ethnodemodule.getWeb3ProviderObject(session, _web3providerurl);
+
+		this.networkid = (_web3providerobject ? _web3providerobject.getVariable('networkid') : null);
+
+		return this.networkid;
+	}
+
+	setNetworkId(networkid) {
+		this.networkid = networkid;
+	}
+	
 	_getWeb3Instance() {
 		if (this.web3)
 			return this.web3;
@@ -805,6 +855,9 @@ class EthereumTransaction {
 		var amount = this.value;
 		var gas = this.gas;
 		var gasPrice = this.gasPrice;
+
+		var chainid = this.getChainId(); // EIP-155 replay protection
+		var networkid = this.getNetworkId();
 		
 		var txdata = this.data;
 		var nonce = this.nonce;
@@ -816,6 +869,8 @@ class EthereumTransaction {
 				to: toaddress,
 				gas: gas, 
 				gasPrice: gasPrice,
+				chainid: chainid,
+				networkid: networkid
 			};
 		
 		if (nonce)
@@ -895,7 +950,6 @@ class EthereumTransaction {
 		var self = this;
 		var session = this.session;
 		var global = session.getGlobalObject();
-		var ethnodemodule = global.getModuleObject('ethnode');
 		
 		var web3 = this._getWeb3Instance();
 		var fromaccount = this.sendingaccount;  // tx is signed by sending account even if not final payer
@@ -916,7 +970,8 @@ class EthereumTransaction {
 		var ethereumnodeaccessmodule = this.ethereumnodeaccessmodule;
 		var EthereumNodeAccess = this._getEthereumNodeAccessInstance();
 
-		
+		var _txjson = Object.assign({}, txjson);
+
 		if (fromaccount.canSignTransactions()) {
 		    // signing
 			if (this.web3_version == "1.0.x") {
@@ -924,54 +979,87 @@ class EthereumTransaction {
 
 			    // turn gas, gasprice and value to hex
 			    // not to receive "insufficient funds for gas * price + value"
-			    txjson.gas = web3.utils.toHex(gas.toString());
-			    txjson.gasPrice = web3.utils.toHex(gasPrice.toString());
-			    txjson.value = web3.utils.toHex((txjson.value ? txjson.value.toString() : 0));
-			    
+			    _txjson.gas = web3.utils.toHex(gas.toString());
+				_txjson.gasLimit = web3.utils.toHex(gas.toString());
+			    _txjson.gasPrice = web3.utils.toHex(gasPrice.toString());
+
+			    _txjson.value = web3.utils.toHex((txjson.value ? txjson.value.toString() : 0));
 			}
 			else {
 				// Web3 == 0.20.x
 
 			    // turn gas, gasprice and value to hex
 			    // not to receive "insufficient funds for gas * price + value"
-			    txjson.gas = web3.toHex(gas.toString());
-			    txjson.gasPrice = web3.toHex(gasPrice.toString());
-			    txjson.value = web3.toHex(txjson.value.toString());
-			    
+			    _txjson.gas = web3.toHex(gas.toString());
+				_txjson.gasLimit = web3.utils.toHex(gas.toString());
+			    _txjson.gasPrice = web3.toHex(gasPrice.toString());
+
+				_txjson.value = web3.toHex(txjson.value.toString());
 			}
 			
-		    //return web3.eth.getTransactionCount(fromaddress, function (err, count) {
-		    //return EthereumNodeAccess.web3_getTransactionCount(fromaddress, function (err, count) {
-			return this._getTransactionNonce(session, fromaddress, function (err, count) {
-		    	
-		    	if (!err) {
-			    	txjson.nonce = (nonce ? nonce : count);
-			    	
-					// creating and signing a transaction from fromaccount
-					var ethereumjs = ethereumnodeaccessmodule.getEthereumJsClass(session);
-					
-					var tx = new ethereumjs.Tx(txjson);
-					
-					var hexprivkey = fromaccount.getPrivateKey();
-					
-					var privkey = hexprivkey.substring(2);
-					var bufprivkey = ethereumjs.Buffer.Buffer.from(privkey, 'hex');
-		    
-					tx.sign(bufprivkey);
+		    // chaining promises to get chainid and networkid from web3 provider
+			// if they were not specified
+			return this._getTransactionNonce(session, fromaddress)
+			.then(function(count) {
+				txjson.nonce = (nonce ? nonce : count);
+				_txjson.nonce = (nonce ? nonce : count);
+				
+				if (txjson.chainid)
+					return txjson.chainid;
+				else
+					return EthereumNodeAccess.web3_getChainId();
+			})
+			.then(function(chainid) {
+				_txjson.chainid = chainid;
+				
+				if (txjson.networkid)
+					return txjson.networkid;
+				else
+					return EthereumNodeAccess.web3_getNetworkId();
+			})
+			.then(function(networkid) {
+				_txjson.networkid = networkid;
+				
+				// creating and signing a transaction from fromaccount
+				var ethereumjs = ethereumnodeaccessmodule.getEthereumJsClass(session);
+				
+				const customChain = ethereumjs.Common.forCustomChain(
+					'mainnet',{ name: 'customchain', networkId: _txjson.networkid, chainId: _txjson.chainid},
+					'petersburg'
+				);
 
-					// construct raw data
-					var raw = '0x' + tx.serialize().toString('hex');
-				    
-				    if (callback)
-				    	callback(null, raw);
+				var hexprivkey = fromaccount.getPrivateKey();
+				var privkey = hexprivkey.substring(2);
+				var bufprivkey = ethereumjs.Buffer.Buffer.from(privkey, 'hex');
+		
+/* 				// using constructor
+				var tx = new ethereumjs.Tx(_txjson, { common: customChain });
+				
+				tx.sign(bufprivkey);
 
-				    return raw;
-		    	}
-		    	else {
-		    		if (callback)
-		    			callback(err, null);
-		    	}
-		    });
+				console.log("The transaction's json is", tx.toJSON());
+
+				// construct raw data
+				var raw = '0x' + tx.serialize().toString('hex'); */
+
+				// using fromTxData
+				var _tx = ethereumjs.Tx.fromTxData(_txjson, { common: customChain });
+
+				const _signedTx = _tx.sign(bufprivkey);
+
+				console.log("The transaction's json is", _tx.toJSON());
+
+				var _raw = '0x' + _signedTx.serialize().toString('hex');
+
+				if (callback)
+					callback(null, _raw);
+
+				return _raw;
+			})
+			.catch(function(err) {
+				if (callback)
+					callback(err, null);
+			});
 		}
 		else {
 			throw 'not implemented';
@@ -1000,6 +1088,7 @@ class EthereumNodeAccess {
 		this.web3_version = ethereumnodeaccessmodule.web3_version;
 		
 		this.web3providerurl = null;
+		this.web3artifactrooturi = null;
 	}
 	
 	isReady(callback) {
@@ -1105,6 +1194,10 @@ class EthereumNodeAccess {
 				reject('web3 exception: ' + e);
 			}
 			
+		})
+		.catch(function(err) {
+			if (callback)
+				callback('error: '+ err, null);
 		});
 		
 		return promise
@@ -1149,11 +1242,64 @@ class EthereumNodeAccess {
 				reject('web3 exception: ' + e);
 			}
 			
+		})
+		.catch(function(err) {
+			if (callback)
+				callback('error: '+ err, null);
 		});
 		
 		return promise
 	}
 	
+	web3_getChainId(callback) {
+		var self = this
+		var session = this.session;
+
+		var promise = new Promise(function (resolve, reject) {
+			try {
+				var web3 = self._getWeb3Instance();
+				
+				if (self.web3_version == "1.0.x") {
+					// Web3 > 1.0
+					var funcname = web3.eth.getChainId;
+				}
+				else {
+					// Web3 == 0.20.x
+					var funcname = web3.version.getNetwork; // hope chainid and networkid are the same
+				}
+
+				
+				return funcname( function(err, res) {
+					if (!err) {
+						if (callback)
+							callback(null, res);
+						return resolve(res);
+					}
+					else {
+						if (callback)
+							callback('web3 error: ' + err, null);
+						
+						reject('web3 error: ' + err);
+					}
+				
+				});
+			}
+			catch(e) {
+				if (callback)
+					callback('exception: ' + e, null);
+				
+				reject('web3 exception: ' + e);
+			}
+			
+		})
+		.catch(function(err) {
+			if (callback)
+				callback('error: '+ err, null);
+		});
+		
+		return promise
+	}
+
 	web3_getNetworkId(callback) {
 		var self = this
 		var session = this.session;
@@ -1194,6 +1340,10 @@ class EthereumNodeAccess {
 				reject('web3 exception: ' + e);
 			}
 			
+		})
+		.catch(function(err) {
+			if (callback)
+				callback('error: '+ err, null);
 		});
 		
 		return promise
@@ -1239,6 +1389,10 @@ class EthereumNodeAccess {
 				reject('web3 exception: ' + e);
 			}
 			
+		})
+		.catch(function(err) {
+			if (callback)
+				callback('error: '+ err, null);
 		});
 		
 		return promise
@@ -1259,6 +1413,11 @@ class EthereumNodeAccess {
 		// islistening
 		promise = this.web3_isListening();
 		promises.push(promise);
+		
+		// chainid
+		promise = this.web3_getChainId();
+		promises.push(promise);
+
 		
 		// networkid
 		promise = this.web3_getNetworkId();
@@ -1305,15 +1464,17 @@ class EthereumNodeAccess {
 		// all promises
 		return Promise.all(promises).then(function(res) {
 			var islistening = res[0];
-			var networkid = res[1];
-			var peercount = res[2];
-			var syncingobj = res[3];
-			var blocknumber = res[4];
+			var chainid = res[1];
+			var networkid = res[2];
+			var peercount = res[3];
+			var syncingobj = res[4];
+			var blocknumber = res[5];
 			
 			currentblock = ((syncingobj !== false) && (syncingobj) && (syncingobj['currentBlock']) ? syncingobj['currentBlock'] : blocknumber);
 			highestblock = ((syncingobj !== false) && (syncingobj) && (syncingobj['highestBlock']) ? syncingobj['highestBlock'] : blocknumber);
 
 			var json = {islistening: islistening, 
+					chainid: chainid, 
 					networkid: networkid, 
 					peercount: peercount, 
 					issyncing: issyncing,
@@ -2050,23 +2211,7 @@ class EthereumNodeAccess {
 		}
 	}
 	
-	/*_getWeb3ContractObject(contractartifact) {
-		
-		var TruffleContract = this._getTruffleContractClass();
-		
-		var trufflecontract = TruffleContract(contractartifact);
-	  
-		trufflecontract.setProvider(this._getWeb3Provider());
-		
-		return trufflecontract;
-	}*/
-	
-
 	_getContractInstance(abi, address) {
-		/*if (this.web3_contract_instance) {
-			return this.web3_contract_instance;
-		}*/
-		
 		var self = this;
 		
 		var web3 = this._getWeb3Instance();
@@ -2080,37 +2225,62 @@ class EthereumNodeAccess {
 			var web3_contract_instance = web3.eth.contract(abi).at(address);
 		}
 		
-		//this.web3_contract_instance = web3_contract_instance;
-		
 		return web3_contract_instance;
 	}
 	
-	/*_encapsulateArtifact(web3_contract_artifact) {
-		web3_contract_artifact.getArtifactPath = function() {
-			return web3_contract_artifact['artifactpath'];
-		};
+	_getArtifactFullUri(artifactpath) {
+		var _artifactfullpath;
+
+		if (!artifactpath)
+			return;
+
+		if (this.web3artifactrooturi) {
+			if ((this.web3artifactrooturi.endsWith('/') === false) &&
+				(artifactpath.startsWith('/') === false))
+				_artifactfullpath = this.web3artifactrooturi + '/' + artifactpath;
+			else
+				_artifactfullpath = this.web3artifactrooturi + artifactpath;
+		}
+		else {
+			_artifactfullpath = artifactpath;
+		}
+
+		return _artifactfullpath;
+	}
+	
+	web3_getArtifactRootUri() {
+		return this.web3artifactrooturi;
+	}
+	
+	web3_setArtifactRootUri(rooturi, callback) {
+		console.log('EthereumNodeAccess.web3_setArtifactRootUri called with: ' + rooturi);
+
+		this.web3artifactrooturi = rooturi;
 		
-		web3_contract_artifact.getContractName = function() {
-			return web3_contract_artifact['contractName'];
-		};
-		
-		web3_contract_artifact.getAbi = function() {
-			return web3_contract_artifact['abi'];
-		};
-		
-		web3_contract_artifact.getByteCode = function() {
-			return web3_contract_artifact['bytecode'];
-		};
-	}*/
+		if (callback)
+			callback(null, this.web3artifactrooturi);
+
+		return Promise.resolve(this.web3artifactrooturi);
+	}
 	
 	web3_loadArtifact(artifactpath, callback) {
+		console.log('EthereumNodeAccess.web3_loadArtifact called');
+
 		var self = this;
 		var session = this.session;
 		var ethereumnodeaccessmodule = this.ethereumnodeaccessmodule;
 
 		var web3_contract_artifact = [];
 		
-		var promise = this._loadArtifact(artifactpath, function(data) {
+		var _artifactfullpath = artifactpath;
+
+		if ((artifactpath.startsWith('http://') === false) 
+			&& (artifactpath.startsWith('https://') === false)
+			&& (this.web3artifactrooturi)) {
+			_artifactfullpath = this._getArtifactFullUri(artifactpath)
+		}
+		
+		var promise = this._loadArtifact(_artifactfullpath, function(data) {
 			
 			web3_contract_artifact['artifactuuid'] = session.guid();
 			web3_contract_artifact['data'] = data;
@@ -2509,7 +2679,7 @@ class EthereumNodeAccess {
 
 	}
 	
-	_getMethodAbiDefinition(abi, methodname) {
+	_getMethodAbiDefinition(abi, methodname, args) {
 		var abidef = null;
 		
 		if (!abi)
@@ -2521,26 +2691,40 @@ class EthereumNodeAccess {
 			
 			if (name == methodname) {
 				abidef = item;
-				
-				break;
+
+				if (args) {
+					// check we have correct number of arguments
+					if (item.inputs && (item.inputs.length != args.length)) {
+						// wrong number of arguments
+						continue;
+					}
+					else {
+						// ok to be used
+						break;
+					}
+				}
+				else {
+					// first one found then
+					break;
+				}				
 			}
 		}
 		
 		return abidef;
 	}
 	
-
-	
 	web3_method_call(web3_contract_instance, methodname, params, callback) {
 		var abi = web3_contract_instance.getAbi();
-		var abidef = this._getMethodAbiDefinition(abi, methodname);
+		let args = (params ? params.slice(0,-1) : null);
+		var abidef = this._getMethodAbiDefinition(abi, methodname, args);
 		
 		return this._web3_contract_dynamicMethodCall(web3_contract_instance, abidef, params, callback);
 	}
 	
 	web3_method_sendTransaction(web3_contract_instance, methodname, params, callback) {
 		var abi = web3_contract_instance.getAbi();
-		var abidef = this._getMethodAbiDefinition(abi, methodname);
+		let args = (params ? params.slice(0,-1) : null);
+		var abidef = this._getMethodAbiDefinition(abi, methodname, args);
 		
 		return this._web3_contract_dynamicSendTransaction(web3_contract_instance, abidef, params, callback);
 	}
@@ -2574,8 +2758,21 @@ class EthereumNodeAccess {
 	}
 	
 	truffle_loadArtifact(artifactpath, callback) {
-		return this._loadArtifact(artifactpath, callback);
+		if (this.web3_version == "1.0.x") {
+			// need to return the artifact to the caller via the callback and not the proxy
+			return this.web3_loadArtifact(artifactpath, function(err, artifactproxy) {
+				if (callback) {
+					if (err) callback(null); else callback(artifactproxy.data);
+				}
+			})
+			.then(function(data) {
+				return data;
+			});
+		}
+		else {
+			return this._loadArtifact(artifactpath, callback);
 
+		}
 	}
 	
 	truffle_loadContract(artifact) {

@@ -40,10 +40,11 @@ rootscriptloader.push_import(cryptomodulescriptloader, '../../imports/includes/l
 // filtered libraries (throwing exceptions in nodejs)
 var ethereumjs;
 
-ethereumjs = require('ethereum.js');
+ethereumjs = require('@ethereumjs/common');
+ethereumjs.Common = ethereumjs.default;
 ethereumjs.Util = require('ethereumjs-util');
 ethereumjs.Wallet = require('ethereumjs-wallet');
-ethereumjs.Tx = require('ethereumjs-tx');
+ethereumjs.Tx = require('@ethereumjs/tx').Transaction;
 
 
 function _getBufferClass() {

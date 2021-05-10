@@ -37,10 +37,16 @@ var Module = class {
 		var moduleroot = './includes/lib';
 
 		if (global.isInBrowser()) {
-			modulescriptloader.push_script( moduleroot + '/ethereumjs-all-2017-10-31.min.js');
-			modulescriptloader.push_script( moduleroot + '/keythereum.min-1.0.2.js');
-			modulescriptloader.push_script( moduleroot + '/bitcore.min-0.11.7.js');
-			modulescriptloader.push_script( moduleroot + '/bitcore-ecies.min-0.9.2.js');
+			// browserified node modules
+			modulescriptloader.push_script( moduleroot + '/core-0.30.1-ethereumjs-all.js');
+			modulescriptloader.push_script( moduleroot + '/core-0.10.1-keythereum.js');
+			modulescriptloader.push_script( moduleroot + '/core-0.10.1-bitcore.js');
+			modulescriptloader.push_script( moduleroot + '/core-0.10.1-bitcore-ecies.js');
+
+			//modulescriptloader.push_script( moduleroot + '/ethereumjs-all-2017-10-31.min.js');
+			//modulescriptloader.push_script( moduleroot + '/keythereum.min-1.0.2.js');
+			//modulescriptloader.push_script( moduleroot + '/bitcore.min-0.11.7.js');
+			//modulescriptloader.push_script( moduleroot + '/bitcore-ecies.min-0.9.2.js');
 		}
 
 
@@ -368,12 +374,14 @@ class CryptoKeyEncryption {
 		cryptokey.private_key = privkey;
 		
 		var ethereumjs = this.getEthereumJsClass();
+		var _private_key = cryptokey.private_key.split('x')[1];
+		var _private_key_buf =  ethereumjs.Buffer.Buffer(_private_key, 'hex'); 
 		
 		// ECE
 		if (cryptokey.public_key == null) {
 			//console.log('ethereumjs is ' + JSON.stringify(ethereumjs));
 			
-			cryptokey.public_key = '0x' + ethereumjs.Util.privateToPublic(cryptokey.private_key).toString('hex');
+			cryptokey.public_key = '0x' + ethereumjs.Util.privateToPublic(_private_key_buf).toString('hex');
 			
 			console.log('aes public key is: ' + cryptokey.public_key );
 			
@@ -382,13 +390,13 @@ class CryptoKeyEncryption {
 				this.session.removeCryptoKeyObject(cryptokey);
 			}
 			
-			cryptokey.address = '0x' + ethereumjs.Util.privateToAddress(cryptokey.private_key).toString('hex');
+			cryptokey.address = '0x' + ethereumjs.Util.privateToAddress(_private_key_buf).toString('hex');
 			
 			console.log('address is: ' + cryptokey.address);
 		}
 		else {
 			// check public key corresponds
-			var public_key = '0x' + ethereumjs.Util.privateToPublic(cryptokey.private_key).toString('hex');
+			var public_key = '0x' + ethereumjs.Util.privateToPublic(_private_key_buf).toString('hex');
 			
 			if (public_key != cryptokey.public_key) {
 				// overwrite
@@ -399,7 +407,7 @@ class CryptoKeyEncryption {
 					this.session.removeCryptoKeyObject(cryptokey);
 				}
 				
-				cryptokey.address = '0x' + ethereumjs.Util.privateToAddress(cryptokey.private_key).toString('hex');
+				cryptokey.address = '0x' + ethereumjs.Util.privateToAddress(_private_key_buf).toString('hex');
 			}
 		}
 		
@@ -746,6 +754,18 @@ class CryptoKeyEncryption {
 			throw 'not implemented';
 		}
 	}
+
+	_getBufferClass() {
+		if ( typeof window !== 'undefined' && window && window.Buffer ) {
+			return window.Buffer;
+		}
+		else if (typeof global !== 'undefined') {
+			return global.simplestore.Buffer;
+		}
+		else {
+			throw 'not implemented';
+		}
+	}
 	
 	
 	canDoRsaEncryption() {
@@ -997,10 +1017,11 @@ class CryptoKeyEncryption {
 		
 		
 		var Hash = bitcore.crypto.Hash;
+		var _BufferClass = this._getBufferClass();
 		
 		var hashf = (hashforce == 'sha512' ? Hash.sha512 : Hash.sha256);
-		var data = Buffer.from(datastring);
-		var key = Buffer.from(keystring);
+		var data = _BufferClass.from(datastring);
+		var key = _BufferClass.from(keystring);
 		
 		var hashbuff = Hash.hmac(hashf, data, key);
 		

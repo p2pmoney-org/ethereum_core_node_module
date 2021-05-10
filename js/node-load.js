@@ -103,10 +103,11 @@ class NodeLoad {
 			// filtered libraries (throwing exceptions in nodejs)
 			var ethereumjs;
 			
-			ethereumjs = _noderequire('ethereum.js');
+			ethereumjs = _noderequire('@ethereumjs/common');
+			ethereumjs.Common = ethereumjs.default;
 			ethereumjs.Util = _noderequire('ethereumjs-util');
 			ethereumjs.Wallet = _noderequire('ethereumjs-wallet');
-			ethereumjs.Tx = _noderequire('ethereumjs-tx');
+			ethereumjs.Tx = _noderequire('@ethereumjs/tx').Transaction;
 
 			const _Buffer = Buffer;
 			//const _Buffer = require('buffer').Buffer;

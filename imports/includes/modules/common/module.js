@@ -3,7 +3,7 @@
 var Module = class {
 	constructor() {
 		this.name = 'common';
-		this.current_version = "0.20.12.2021.04.07";
+		this.current_version = "0.30.1.2021.05.13";
 		
 		this.global = null; // put by global on registration
 		this.isready = false;
@@ -231,34 +231,6 @@ var Module = class {
 
 		return session;
 	}
-	
-	/*getSessionObject() {
-		if (this.session)
-			return this.session;
-		
-		if (this.session_array.length) {
-			this.session = this.session_array[0];
-			
-			return this.session;
-		}
-
-		this.session = this.createBlankSessionObject();
-		
-		return this.session;
-	}
-	
-	setCurrentSessionObject(session) {
-		var newsessionuuid = session.getSessionUUID();
-		
-		var newsession = this.findSessionObjectFromUUID(newsessionuuid);
-		
-		if (!newsession) {
-			// not in our array yet, push it
-			this.session_array.push(session);
-		}
-		
-		this.session = session;
-	}*/
 	
 	
 	// multi session management

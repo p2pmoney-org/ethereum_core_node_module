@@ -248,6 +248,9 @@ class ScriptLoader {
 
 				if (callback)
 					callback();
+			})
+			.catch(function(err) {
+				console.log('ERROR in doScriptLoad: ' + err);
 			});
 		}
 	}
