@@ -356,13 +356,6 @@ class CryptoKeyEncryption {
 		}
 		else if (typeof global !== 'undefined') {
 			return global.simplestore.ethereumjs;
-			/*var ethereumjs;
-			
-			ethereumjs = require('ethereum.js');
-			ethereumjs.Util = require('ethereumjs-util');
-			ethereumjs.Wallet = require('ethereumjs-wallet');
-
-			return ethereumjs;*/
 		}
 		else {
 			throw 'not implemented';
@@ -906,9 +899,9 @@ class CryptoKeyEncryption {
 		//
 		// signing
 		//
-		
+		var plaintextbuf = ethereumjs.Buffer.Buffer(plaintext, 'utf8');
 
-		var textHashBuffer = ethereumjs.Util.sha256(plaintext);
+		var textHashBuffer = ethereumjs.Util.sha256(plaintextbuf);
 		var texthash = textHashBuffer.toString('hex')
 		
 		console.log( 'text hash is: ', texthash);
@@ -936,7 +929,9 @@ class CryptoKeyEncryption {
 			
 			var cryptokey_address = this.cryptokey.getAddress();
 
-			var textHashBuffer = ethereumjs.Util.sha256(plaintext);
+			var plaintextbuf = ethereumjs.Buffer.Buffer(plaintext, 'utf8');
+
+			var textHashBuffer = ethereumjs.Util.sha256(plaintextbuf);
 			var texthash = textHashBuffer.toString('hex')
 
 			var sig = ethereumjs.Util.fromRpcSig(signature);
@@ -1006,7 +1001,8 @@ class CryptoKeyEncryption {
 
 		var cryptokeyPassword="123456";
 		var key = ethereumjs.Wallet.generate(cryptokeyPassword);
-		return '0x' + key._privKey.toString('hex');		
+		var _privKey = (key.privateKey ? key.privateKey : key._privKey);
+		return '0x' + _privKey.toString('hex');		
 	}
 	
 	hash_hmac(hashforce, datastring, keystring) {

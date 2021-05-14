@@ -258,13 +258,6 @@ var Module = class {
 		}
 		else if (typeof global !== 'undefined') {
 			return global.simplestore.ethereumjs;
-			/*var ethereumjs;
-			
-			ethereumjs = require('ethereum.js');
-			ethereumjs.Util = require('ethereumjs-util');
-			ethereumjs.Wallet = require('ethereumjs-wallet');
-
-			return ethereumjs;*/
 		}
 		else {
 			throw 'not implemented';
@@ -984,6 +977,11 @@ class EthereumTransaction {
 			    _txjson.gasPrice = web3.utils.toHex(gasPrice.toString());
 
 			    _txjson.value = web3.utils.toHex((txjson.value ? txjson.value.toString() : 0));
+
+				if (txjson.data && (typeof txjson.data === 'string' || txjson.data instanceof String)) {
+					// transform into hexadecimal string
+					_txjson.data = web3.utils.toHex(txjson.data);
+				}
 			}
 			else {
 				// Web3 == 0.20.x

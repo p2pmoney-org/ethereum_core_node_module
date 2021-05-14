@@ -43,7 +43,7 @@ var ethereumjs;
 ethereumjs = require('@ethereumjs/common');
 ethereumjs.Common = ethereumjs.default;
 ethereumjs.Util = require('ethereumjs-util');
-ethereumjs.Wallet = require('ethereumjs-wallet');
+ethereumjs.Wallet = require('ethereumjs-wallet').default;
 ethereumjs.Tx = require('@ethereumjs/tx').Transaction;
 
 

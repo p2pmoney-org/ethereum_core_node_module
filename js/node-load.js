@@ -106,7 +106,7 @@ class NodeLoad {
 			ethereumjs = _noderequire('@ethereumjs/common');
 			ethereumjs.Common = ethereumjs.default;
 			ethereumjs.Util = _noderequire('ethereumjs-util');
-			ethereumjs.Wallet = _noderequire('ethereumjs-wallet');
+			ethereumjs.Wallet = _noderequire('ethereumjs-wallet').default;
 			ethereumjs.Tx = _noderequire('@ethereumjs/tx').Transaction;
 
 			const _Buffer = Buffer;

@@ -7,7 +7,7 @@ var _global = _GlobalClass.getGlobalObject();
 var _ethereumjs = require('@ethereumjs/common');
 _ethereumjs.Common = _ethereumjs.default;
 _ethereumjs.Util = require('ethereumjs-util');
-_ethereumjs.Wallet = require('ethereumjs-wallet');
+_ethereumjs.Wallet = require('ethereumjs-wallet').default;
 _ethereumjs.Tx = require('@ethereumjs/tx').Transaction;
 
 function _getBufferClass() {
