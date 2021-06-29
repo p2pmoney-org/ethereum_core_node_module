@@ -114,12 +114,10 @@ class Global {
 		if ( typeof window !== 'undefined' && window ) {
 			// if we are in browser (or react-native) and not node js
 			this.globalscope = window;
-			
 		}
 		else if (typeof global !== 'undefined') {
-			// node js (e.g. truffle migrate)
+			// node js
 			this.globalscope = global;
-			
 		}
 	}
 	
@@ -798,6 +796,14 @@ class Global {
 			
 			// capture bootstrap log function
 			var bootstrap = this.getBootstrapObject();
+
+			if (!bootstrap.log) {
+				// make bootstrap capture log function
+				this.putGlobalStoredObject('noconsoleoverload', false)
+			
+				bootstrap.overrideConsoleLog();
+			}
+
 			this.orgconsolelog = bootstrap.log;
 			
 			var self = this;
@@ -809,11 +815,45 @@ class Global {
 		}
 		
 	}
+
+	muteConsoleLog() {
+		console.log('muting console log');
+
+		if (this.overrideconsolelog == true)
+			return;
+		
+		console.log('global.execution_env is ' + this.execution_env);
+
+		if (this.execution_env == 'prod') {
+			this.overrideconsolelog = true;
+			
+			// make bootstrap capture log function
+			var bootstrap = this.getBootstrapObject();
+			if (!bootstrap.log) {
+				this.putGlobalStoredObject('noconsoleoverload', false)
+			
+				bootstrap.overrideConsoleLog();
+			}
+
+			// then capture bootstrap log function
+			this.orgconsolelog = bootstrap.log;
+			
+			var self = this;
+			
+			console.log = function() {
+				self.log.apply(self, arguments);
+			}; 
+			
+		}
+
+		
+	}
 	
 	releaseConsoleLog() {
 		this.overrideconsolelog = false;
 		
-		console.log = this.orgconsolelog ; 
+		if (this.orgconsolelog)
+		console.log = this.orgconsolelog; 
 	}
 	
 	_timeString() {
@@ -835,7 +875,7 @@ class Global {
 		if (this.execution_env != 'dev')
 			return; // logging to console disabled
 		
-		if (this.overrideconsolelog == true) {
+		if ((this.overrideconsolelog == true) && (this.orgconsolelog)) {
 			var line = this._timeString() + ": ";
 			
 			line += string;
@@ -843,7 +883,7 @@ class Global {
 			this.orgconsolelog(line); // we've overloaded console.log
 		}
 		else {
-			console.log(sring);
+			console.log(string);
 		}
 	}
 	

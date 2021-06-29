@@ -5,8 +5,10 @@ class Bootstrap {
 	constructor() {
 		this.execution_env = 'prod';
 		this.javascript_env = 'browser';
+		this.globalscope = null;
 		
 		if (typeof window !== 'undefined' && window ) {
+			this.globalscope = window;
 			if (typeof document !== 'undefined' && document ) {
 				this.javascript_env = 'browser';
 			}
@@ -15,6 +17,7 @@ class Bootstrap {
 			}
 		}
 		else if (typeof global !== 'undefined') {
+			this.globalscope = global;
 			this.javascript_env = 'nodejs';
 		}
 		else {
@@ -47,6 +50,11 @@ class Bootstrap {
 		console.log('overridding console log');
 		
 		if (this.execution_env != 'dev') {
+			if (this.globalscope && this.globalscope.simplestore && (this.globalscope.simplestore.noconsoleoverload === true)) {
+				console.log('no overload of console logs because globalscope.simplestore.noconsoleoverload set to true');
+				return;
+			}
+
 			console.log('set the execution environment to dev to keep receiving logs');
 			
 			// capture current log function
@@ -114,7 +122,8 @@ class Bootstrap {
 	releaseConsoleLog() {
 		this.overrideconsolelog = false;
 		
-		console.log = this.orgconsolelog ; 
+		if (this.orgconsolelog)
+		console.log = this.orgconsolelog; 
 	}
 	
 	getMvcUI() {

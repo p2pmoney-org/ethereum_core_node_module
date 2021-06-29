@@ -1776,6 +1776,16 @@ class EthereumNodeAccess {
 	// transactions
 	_findTransactionFromUUID(transactionuuid) {
 		// we look in local history
+		var self = this;
+
+		// get local list
+		var jsonarray = self._readTransactionLogs();
+
+		for (var i = 0; i < (jsonarray ? jsonarray.length : 0); i++) {
+			var tx_log = jsonarray[i];
+			if (tx_log.transactionuuid == transactionuuid)
+			return tx_log.transactionHash;
+		}
 	}
 	
 	_readTransactionLogs() {
