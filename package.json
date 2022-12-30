@@ -33,6 +33,6 @@
     "typedarray-to-buffer": "^3.1.2",
     "yaeti": "^0.0.6",
     "chai": "^4.2.0",
-    "mocha": "^6.2.1"
+    "mocha": "^10.2.0"
   }
 }
